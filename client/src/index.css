@@ -1,0 +1,382 @@
+@import "tailwindcss";
+/* PrimeSchoolOs — Global CSS
+   Only necessary base styles. Component styles use Tailwind utilities.
+*/
+
+/* ── Font Import (loaded via index.html) ─────────────────────────────────── */
+:root {
+  /* Brand Colors */
+  --clr-primary: #2563EB;
+  --clr-primary-dark: #1D4ED8;
+  --clr-primary-light: #DBEAFE;
+  --clr-bg-deep: #0F172A;
+  --clr-bg-card: #1E293B;
+  --clr-success: #22C55E;
+  --clr-warning: #F59E0B;
+  --clr-danger: #EF4444;
+  --clr-info: #06B6D4;
+
+  /* Typography */
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-display: 'Outfit', 'Inter', sans-serif;
+  --font-script: 'Caveat', cursive, sans-serif;
+
+  /* Safe area insets for PWA on notched devices */
+  --sat: env(safe-area-inset-top);
+  --sab: env(safe-area-inset-bottom);
+  --sal: env(safe-area-inset-left);
+  --sar: env(safe-area-inset-right);
+}
+
+/* ── Base Reset ──────────────────────────────────────────────────────────── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  font-family: var(--font-sans);
+  -webkit-text-size-adjust: 100%;
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overscroll-behavior: none;
+}
+
+/* ── PWA / Mobile Utilities ──────────────────────────────────────────────── */
+.safe-top {
+  padding-top: max(var(--sat), 12px);
+}
+
+.safe-bottom {
+  padding-bottom: max(var(--sab), 8px);
+}
+
+/* Prevent horizontal scroll on mobile */
+.font-script {
+  font-family: var(--font-script);
+}
+#root {
+  overflow-x: hidden;
+}
+
+/* ── Animations ──────────────────────────────────────────────────────────── */
+@keyframes blob {
+
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+
+  33% {
+    transform: translate(20px, -20px) scale(1.05);
+  }
+
+  66% {
+    transform: translate(-10px, 10px) scale(0.97);
+  }
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes pulse-glow {
+
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.4);
+  }
+
+  50% {
+    box-shadow: 0 0 0 8px rgba(37, 99, 235, 0);
+  }
+}
+
+@keyframes shimmer {
+  from {
+    background-position: -200% center;
+  }
+
+  to {
+    background-position: 200% center;
+  }
+}
+
+/* ── Animation Classes ───────────────────────────────────────────────────── */
+.animate-blob {
+  animation: blob 8s infinite ease-in-out;
+}
+
+.animate-fade-up {
+  animation: fadeUp 0.4s ease both;
+}
+
+.animate-slide-in-left {
+  animation: slideInLeft 0.35s ease both;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.animation-delay-2000 {
+  animation-delay: 2s;
+}
+
+.animation-delay-4000 {
+  animation-delay: 4s;
+}
+
+/* ── Skeleton Loader ─────────────────────────────────────────────────────── */
+.skeleton {
+  background: linear-gradient(90deg, #1E293B 25%, #334155 50%, #1E293B 75%);
+  background-size: 200% auto;
+  animation: shimmer 1.4s linear infinite;
+  border-radius: 6px;
+}
+
+/* ── Scrollbar (Desktop) ─────────────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.3);
+  border-radius: 99px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.5);
+}
+
+/* ── Focus Ring ──────────────────────────────────────────────────────────── */
+:focus-visible {
+  outline: 2px solid var(--clr-primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ── Selection ───────────────────────────────────────────────────────────── */
+::selection {
+  background: rgba(37, 99, 235, 0.25);
+}
+
+/* ── Global Form & Button Utilities (High Contrast & Visual Sync) ────────── */
+.form-label {
+  display: block;
+  font-size: 0.8125rem; /* 13px */
+  font-weight: 700;
+  color: #1e293b; /* slate-800 */
+  margin-bottom: 0.375rem;
+}
+
+.form-label-required::after {
+  content: ' *';
+  color: #ef4444; /* red-500 */
+  font-weight: 700;
+}
+
+.form-input {
+  width: 100%;
+  height: 2.625rem; /* 42px */
+  padding: 0.5rem 0.875rem;
+  font-size: 0.875rem; /* 14px */
+  font-weight: 500;
+  color: #0f172a; /* slate-900 */
+  background-color: #ffffff;
+  border: 1px solid #cbd5e1; /* slate-300 */
+  border-radius: 0.75rem; /* 12px */
+  outline: none;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.04);
+  transition: all 0.15s ease-in-out;
+}
+
+.form-input::placeholder {
+  color: #94a3b8; /* slate-400 */
+  font-weight: 400;
+}
+
+.form-input:hover {
+  border-color: #94a3b8; /* slate-400 */
+}
+
+.form-input:focus {
+  border-color: #2563eb; /* blue-600 */
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+.form-select {
+  width: 100%;
+  height: 2.625rem; /* 42px */
+  padding: 0.5rem 2rem 0.5rem 0.875rem;
+  font-size: 0.875rem; /* 14px */
+  font-weight: 600;
+  color: #0f172a; /* slate-900 */
+  background-color: #ffffff;
+  border: 1px solid #cbd5e1; /* slate-300 */
+  border-radius: 0.75rem;
+  outline: none;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.04);
+  cursor: pointer;
+  transition: all 0.15s ease-in-out;
+}
+
+.form-select:hover {
+  border-color: #94a3b8;
+}
+
+.form-select:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+.form-textarea {
+  width: 100%;
+  padding: 0.625rem 0.875rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #0f172a;
+  background-color: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.75rem;
+  outline: none;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.04);
+  transition: all 0.15s ease-in-out;
+}
+
+.form-textarea:hover {
+  border-color: #94a3b8;
+}
+
+.form-textarea:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+/* ── Synced Buttons ──────────────────────────────────────────────────────── */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  height: 2.625rem; /* 42px */
+  padding: 0 1.25rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #ffffff;
+  background-color: #2563eb; /* blue-600 */
+  border: 1px solid #1d4ed8;
+  border-radius: 0.75rem;
+  box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
+  cursor: pointer;
+  transition: all 0.15s ease-in-out;
+}
+
+.btn-primary:hover {
+  background-color: #1d4ed8; /* blue-700 */
+  box-shadow: 0 4px 8px rgba(37, 99, 235, 0.25);
+}
+
+.btn-primary:active {
+  transform: scale(0.98);
+}
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  height: 2.625rem; /* 42px */
+  padding: 0 1.125rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #334155; /* slate-700 */
+  background-color: #ffffff;
+  border: 1px solid #cbd5e1; /* slate-300 */
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  cursor: pointer;
+  transition: all 0.15s ease-in-out;
+}
+
+.btn-secondary:hover {
+  background-color: #f8fafc; /* slate-50 */
+  border-color: #94a3b8; /* slate-400 */
+  color: #0f172a; /* slate-900 */
+}
+
+.btn-secondary:active {
+  transform: scale(0.98);
+}
+
+.btn-success {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  height: 2.625rem;
+  padding: 0 1.5rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #ffffff;
+  background-color: #059669; /* emerald-600 */
+  border: 1px solid #047857;
+  border-radius: 0.75rem;
+  box-shadow: 0 2px 4px rgba(5, 150, 105, 0.2);
+  cursor: pointer;
+  transition: all 0.15s ease-in-out;
+}
+
+.btn-success:hover {
+  background-color: #047857;
+  box-shadow: 0 4px 8px rgba(5, 150, 105, 0.25);
+}
+
+.btn-success:active {
+  transform: scale(0.98);
+}
+
+/* ── Panel Card ──────────────────────────────────────────────────────────── */
+.card-panel {
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0; /* slate-200 */
+  border-radius: 1.5rem; /* 24px */
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+  transition: all 0.15s ease-in-out;
+}
+
+.card-panel:hover {
+  border-color: #cbd5e1; /* slate-300 */
+}
