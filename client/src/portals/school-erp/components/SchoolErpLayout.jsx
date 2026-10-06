@@ -70,9 +70,9 @@ const NAV_GROUPS = [
     {
         title: 'PEOPLE',
         items: [
-            { to: '/school/teachers', label: 'Teachers', Icon: UserCheck, featureId: 'students_list' },
-            { to: '/school/staff', label: 'Staff Management', Icon: Users, featureId: 'roles_permissions' },
-            { to: '/school/parents', label: 'Parents', Icon: Users, featureId: 'parent_meetings' }
+            { to: '/school/teachers', label: 'Teachers', Icon: UserCheck, featureId: 'teachers_directory' },
+            { to: '/school/staff', label: 'Staff Management', Icon: Users, featureId: 'staff_management' },
+            { to: '/school/parents', label: 'Parents', Icon: Users, featureId: 'parents_directory' }
         ]
     },
     {
@@ -185,9 +185,8 @@ export default function SchoolErpLayout({ children }) {
 
             {/* Deep Navy Sidebar */}
             <aside
-                className={`fixed inset-y-0 left-0 z-50 w-64 flex flex-col bg-[#071325] text-slate-300 transition-transform duration-300 ease-in-out ${
-                    sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-                } lg:translate-x-0 lg:static lg:flex shrink-0 border-r border-[#13233c]`}
+                className={`fixed inset-y-0 left-0 z-50 w-64 flex flex-col bg-[#071325] text-slate-300 transition-transform duration-300 ease-in-out ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+                    } lg:translate-x-0 lg:static lg:flex shrink-0 border-r border-[#13233c]`}
             >
                 {/* Brand / School Logo Header */}
                 <div className="flex items-center gap-3 h-16 px-4 border-b border-[#13233c] shrink-0">
@@ -252,11 +251,10 @@ export default function SchoolErpLayout({ children }) {
                                             onClick={() => setSidebarOpen(false)}
                                             className={({ isActive }) => {
                                                 const active = isCustomActive(isActive);
-                                                return `flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium transition-all ${
-                                                    active
-                                                        ? 'bg-blue-600 text-white font-semibold shadow-md shadow-blue-600/30'
-                                                        : 'text-slate-300 hover:bg-[#11233f] hover:text-white'
-                                                }`;
+                                                return `flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium transition-all ${active
+                                                    ? 'bg-blue-600 text-white font-semibold shadow-md shadow-blue-600/30'
+                                                    : 'text-slate-300 hover:bg-[#11233f] hover:text-white'
+                                                    }`;
                                             }}
                                         >
                                             {({ isActive }) => {
@@ -339,7 +337,7 @@ export default function SchoolErpLayout({ children }) {
                             </button>
 
                             {academicYearDropdownOpen && (
-                                <div className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-xl border border-slate-200 p-2 z-40 animate-in fade-in zoom-in-95 duration-150">
+                                <div className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-xl border border-slate-200 p-2 z-100 animate-in fade-in zoom-in-95 duration-150">
                                     <div className="px-2.5 py-1.5 border-b border-slate-100 text-[10px] font-extrabold text-slate-600 uppercase tracking-wider">
                                         Academic Sessions
                                     </div>
@@ -358,11 +356,10 @@ export default function SchoolErpLayout({ children }) {
                                                     }
                                                     setAcademicYearDropdownOpen(false);
                                                 }}
-                                                className={`p-2 rounded-xl flex items-center justify-between cursor-pointer transition-colors ${
-                                                    yr.isCurrent
-                                                        ? 'bg-blue-50/80 text-blue-900 font-bold'
-                                                        : 'hover:bg-slate-50 text-slate-700'
-                                                }`}
+                                                className={`p-2 rounded-xl flex items-center justify-between cursor-pointer transition-colors ${yr.isCurrent
+                                                    ? 'bg-blue-50/80 text-blue-900 font-bold'
+                                                    : 'hover:bg-slate-50 text-slate-700'
+                                                    }`}
                                             >
                                                 <div>
                                                     <div className="text-xs font-bold flex items-center gap-1.5">
@@ -479,10 +476,9 @@ export default function SchoolErpLayout({ children }) {
                             to={to}
                             end={end}
                             className={({ isActive }) =>
-                                `flex flex-col items-center justify-center py-1 px-3 rounded-xl transition-all ${
-                                    isActive
-                                        ? 'text-blue-600 font-bold scale-105'
-                                        : 'text-slate-600 hover:text-slate-900 font-semibold'
+                                `flex flex-col items-center justify-center py-1 px-3 rounded-xl transition-all ${isActive
+                                    ? 'text-blue-600 font-bold scale-105'
+                                    : 'text-slate-600 hover:text-slate-900 font-semibold'
                                 }`
                             }
                         >

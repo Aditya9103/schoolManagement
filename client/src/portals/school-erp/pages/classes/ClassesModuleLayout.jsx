@@ -34,7 +34,7 @@ export default function ClassesModuleLayout() {
     return (
         <div className="min-h-full bg-slate-50 flex flex-col">
             {/* Sub-Header Navigation Banner */}
-            <header className="bg-white border-b border-slate-200 sticky top-0 z-20 shadow-2xs">
+            <header className="bg-white border-b border-slate-200 sticky top-0 z-15 shadow-2xs">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between py-3 gap-3 border-b border-slate-100">
                         <div className="flex items-center gap-3">

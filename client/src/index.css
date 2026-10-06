@@ -5,6 +5,8 @@
 
 /* ── Font Import (loaded via index.html) ─────────────────────────────────── */
 :root {
+  color-scheme: light;
+
   /* Brand Colors */
   --clr-primary: #2563EB;
   --clr-primary-dark: #1D4ED8;
@@ -36,7 +38,9 @@
 }
 
 html {
+  color-scheme: light;
   font-family: var(--font-sans);
+  color: #0f172a;
   -webkit-text-size-adjust: 100%;
   scroll-behavior: smooth;
 }
@@ -44,9 +48,111 @@ html {
 body {
   margin: 0;
   min-height: 100dvh;
+  color: #0f172a;
+  background-color: #f8fafc;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overscroll-behavior: none;
+}
+
+/* ── Universal Input Visibility & Form Control Standards ─────────────────── */
+/* Ensures ALL input fields, textareas, and selects across EVERY page have crisp, dark, 100% visible text */
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]):not([type="submit"]):not([type="button"]):not([type="reset"]),
+textarea,
+select {
+  color: #0f172a !important;
+  -webkit-text-fill-color: #0f172a !important;
+  caret-color: #2563eb !important;
+  color-scheme: light !important;
+  font-family: inherit;
+  font-weight: 550 !important;
+  background-color: #ffffff !important;
+  border-color: #cbd5e1 !important; /* crisp slate-300 border for high visibility */
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]):not([type="submit"]):not([type="button"]):not([type="reset"]):hover,
+textarea:hover,
+select:hover {
+  border-color: #94a3b8 !important; /* slate-400 */
+}
+
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]):not([type="submit"]):not([type="button"]):not([type="reset"]):focus,
+textarea:focus,
+select:focus {
+  color: #0f172a !important;
+  -webkit-text-fill-color: #0f172a !important;
+  border-color: #2563eb !important;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.18) !important;
+  outline: none !important;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #64748b !important; /* high-contrast slate-500 instead of faint washed-out gray */
+  -webkit-text-fill-color: #64748b !important;
+  opacity: 1 !important;
+  font-weight: 450 !important;
+}
+
+/* Chrome/Safari Autofill text visibility fix */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active,
+textarea:-webkit-autofill,
+textarea:-webkit-autofill:hover,
+textarea:-webkit-autofill:focus,
+select:-webkit-autofill,
+select:-webkit-autofill:hover,
+select:-webkit-autofill:focus {
+  -webkit-text-fill-color: #0f172a !important;
+  box-shadow: 0 0 0 1000px #ffffff inset !important;
+  -webkit-box-shadow: 0 0 0 1000px #ffffff inset !important;
+  transition: background-color 5000s ease-in-out 0s !important;
+}
+
+/* Disabled input fields */
+input:disabled,
+textarea:disabled,
+select:disabled {
+  color: #64748b !important;
+  -webkit-text-fill-color: #64748b !important;
+  background-color: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+  cursor: not-allowed;
+  opacity: 0.9;
+}
+
+/* ── High Contrast Text Accessibility Upgrades (WCAG AA/AAA) ─────────────── */
+/* Elevate washed-out slate text across all UI cards, tables, metrics, and modals */
+.text-slate-400 {
+  color: #64748b !important; /* upgraded from low-contrast #94a3b8 to crisp slate-500 */
+}
+
+.text-slate-500 {
+  color: #475569 !important; /* upgraded to rich slate-600 */
+}
+
+/* Crisp Labels & Table Headers */
+label {
+  color: #1e293b !important; /* slate-800 */
+  font-weight: 600;
+}
+
+th {
+  color: #334155 !important; /* slate-700 */
+  font-weight: 700 !important;
+}
+
+/* Checkbox and radio visibility */
+input[type="checkbox"],
+input[type="radio"] {
+  accent-color: #2563eb;
+  color-scheme: light;
+  cursor: pointer;
+  width: 1rem;
+  height: 1rem;
 }
 
 /* ── PWA / Mobile Utilities ──────────────────────────────────────────────── */
@@ -213,7 +319,7 @@ body {
   height: 2.625rem; /* 42px */
   padding: 0.5rem 0.875rem;
   font-size: 0.875rem; /* 14px */
-  font-weight: 500;
+  font-weight: 550;
   color: #0f172a; /* slate-900 */
   background-color: #ffffff;
   border: 1px solid #cbd5e1; /* slate-300 */
@@ -224,8 +330,9 @@ body {
 }
 
 .form-input::placeholder {
-  color: #94a3b8; /* slate-400 */
-  font-weight: 400;
+  color: #64748b; /* slate-500: crisp and readable */
+  font-weight: 450;
+  opacity: 1;
 }
 
 .form-input:hover {
@@ -234,7 +341,7 @@ body {
 
 .form-input:focus {
   border-color: #2563eb; /* blue-600 */
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.18);
 }
 
 .form-select {
@@ -379,4 +486,66 @@ body {
 
 .card-panel:hover {
   border-color: #cbd5e1; /* slate-300 */
+}
+
+/* ── Print Media Optimization & Result Isolation ─────────────────────────── */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 10mm;
+  }
+
+  /* Global hide of ERP navigation and interactive elements */
+  aside,
+  header,
+  nav,
+  button,
+  input,
+  select,
+  .no-print,
+  .print-hidden,
+  [class*="print:hidden"] {
+    display: none !important;
+  }
+
+  body, html {
+    background: #ffffff !important;
+    color: #000000 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  #root, main {
+    overflow: visible !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+
+  /* When body has .print-only-result, isolate ONLY the targeted element in natural document flow */
+  body.print-only-result * {
+    visibility: hidden;
+  }
+
+  body.print-only-result .printable-result-target,
+  body.print-only-result .printable-result-target * {
+    visibility: visible;
+  }
+
+  body.print-only-result .printable-result-target {
+    position: relative !important;
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    box-shadow: none !important;
+    border-color: #0f172a !important;
+    page-break-inside: auto !important;
+  }
 }

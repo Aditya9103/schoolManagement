@@ -278,7 +278,8 @@ export default function ClassTimetablePage({ targetClassId = null }) {
     return (
         <div className="space-y-6 pb-12">
             {/* Embedded Print CSS ensuring full landscape print with zero cutoffs */}
-            <style dangerouslySetInnerHTML={{ __html: `
+            <style dangerouslySetInnerHTML={{
+                __html: `
                 @media print {
                     @page {
                         size: landscape;
@@ -465,11 +466,10 @@ export default function ClassTimetablePage({ targetClassId = null }) {
                                         <button
                                             key={s._id}
                                             onClick={() => handleSectionChange(s._id)}
-                                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
-                                                selectedSectionId === s._id
-                                                    ? 'bg-white text-blue-700 shadow-xs border border-slate-200/80 font-extrabold'
-                                                    : 'text-slate-700 hover:text-slate-950 hover:bg-white/50'
-                                            }`}
+                                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${selectedSectionId === s._id
+                                                ? 'bg-white text-blue-700 shadow-xs border border-slate-200/80 font-extrabold'
+                                                : 'text-slate-700 hover:text-slate-950 hover:bg-white/50'
+                                                }`}
                                         >
                                             Section {s.name}
                                         </button>
@@ -488,22 +488,20 @@ export default function ClassTimetablePage({ targetClassId = null }) {
                             <button
                                 type="button"
                                 onClick={() => setIncludeSaturday(false)}
-                                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                                    !includeSaturday
-                                        ? 'bg-white text-slate-900 shadow-xs border border-slate-200/80 font-extrabold'
-                                        : 'text-slate-600 hover:text-slate-900'
-                                }`}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${!includeSaturday
+                                    ? 'bg-white text-slate-900 shadow-xs border border-slate-200/80 font-extrabold'
+                                    : 'text-slate-600 hover:text-slate-900'
+                                    }`}
                             >
                                 5 Days (Mon–Fri)
                             </button>
                             <button
                                 type="button"
                                 onClick={() => setIncludeSaturday(true)}
-                                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                                    includeSaturday
-                                        ? 'bg-indigo-600 text-white shadow-xs font-extrabold'
-                                        : 'text-slate-600 hover:text-slate-900'
-                                }`}
+                                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${includeSaturday
+                                    ? 'bg-indigo-600 text-white shadow-xs font-extrabold'
+                                    : 'text-slate-600 hover:text-slate-900'
+                                    }`}
                             >
                                 <Calendar size={13} className={includeSaturday ? 'text-white' : 'text-slate-500'} />
                                 <span>6 Days (Includes Sat)</span>
@@ -575,7 +573,7 @@ export default function ClassTimetablePage({ targetClassId = null }) {
                     <table className="timetable-print-table min-w-max w-full text-left border-separate border-spacing-0 text-xs">
                         <thead>
                             <tr className="bg-slate-100 text-slate-900 font-extrabold">
-                                <th className="py-3.5 px-4 w-36 min-w-36 max-w-36 bg-slate-100 text-slate-800 uppercase tracking-wider text-[11px] sticky left-0 z-30 border-r border-b border-slate-200 font-black shadow-[3px_0_6px_-2px_rgba(0,0,0,0.08)]">
+                                <th className="py-3.5 px-4 w-36 min-w-36 max-w-36 bg-slate-100 text-slate-800 uppercase tracking-wider text-[11px] sticky left-0 z-10 border-r border-b border-slate-200 font-black shadow-[3px_0_6px_-2px_rgba(0,0,0,0.08)]">
                                     <div className="flex items-center gap-2">
                                         <Clock size={13} className="text-slate-600 shrink-0" />
                                         <span>Day \ Time</span>
@@ -586,19 +584,17 @@ export default function ClassTimetablePage({ targetClassId = null }) {
                                     return (
                                         <th
                                             key={period.periodNumber || pIdx}
-                                            className={`py-3 px-3 text-center border-r border-b border-slate-200 w-40 min-w-40 transition-colors ${
-                                                isBreak
-                                                    ? 'bg-slate-100 text-slate-800 font-extrabold'
-                                                    : 'bg-slate-50 text-slate-900 font-extrabold'
-                                            }`}
+                                            className={`py-3 px-3 text-center border-r border-b border-slate-200 w-40 min-w-40 transition-colors ${isBreak
+                                                ? 'bg-slate-100 text-slate-800 font-extrabold'
+                                                : 'bg-slate-50 text-slate-900 font-extrabold'
+                                                }`}
                                         >
                                             <div className="flex items-center justify-center gap-1.5">
                                                 <span
-                                                    className={`px-2 py-0.5 rounded-md text-[10.5px] font-black uppercase tracking-wider shadow-2xs ${
-                                                        isBreak
-                                                            ? 'bg-slate-200 text-slate-800 border border-slate-300'
-                                                            : 'bg-white text-slate-800 border border-slate-200/90'
-                                                    }`}
+                                                    className={`px-2 py-0.5 rounded-md text-[10.5px] font-black uppercase tracking-wider shadow-2xs ${isBreak
+                                                        ? 'bg-slate-200 text-slate-800 border border-slate-300'
+                                                        : 'bg-white text-slate-800 border border-slate-200/90'
+                                                        }`}
                                                 >
                                                     {isBreak ? 'Break' : `P${period.periodNumber || pIdx + 1}`}
                                                 </span>
@@ -627,7 +623,7 @@ export default function ClassTimetablePage({ targetClassId = null }) {
                                 return (
                                     <tr key={day} className={`hover:bg-slate-50/50 transition-colors ${day === 'Saturday' ? 'bg-indigo-50/15' : ''}`}>
                                         {/* Day Name Column - Solid opaque background prevents bleed-through on scroll */}
-                                        <td className="py-3.5 px-4 w-36 min-w-36 max-w-36 sticky left-0 z-20 bg-white border-r border-b border-slate-200 shadow-[3px_0_6px_-2px_rgba(0,0,0,0.08)] font-black align-middle">
+                                        <td className="py-3.5 px-4 w-36 min-w-36 max-w-36 sticky left-0 z-10 bg-white border-r border-b border-slate-200 shadow-[3px_0_6px_-2px_rgba(0,0,0,0.08)] font-black align-middle">
                                             <div className="flex flex-col gap-1.5">
                                                 <div className="flex items-center justify-between gap-1.5">
                                                     <span className={`px-2 py-0.5 rounded-md text-[11px] font-black tracking-wide shadow-2xs ${dayTheme.badgeBg}`}>

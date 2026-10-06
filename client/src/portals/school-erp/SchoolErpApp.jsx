@@ -14,6 +14,16 @@ import ClassesPage from './pages/classes/ClassesPage';
 import RolesAndPermissionsPage from './pages/roles/RolesAndPermissionsPage';
 import AdmissionsHubPage from './pages/admissions/AdmissionsHubPage';
 import ApplicationDetailPage from './pages/admissions/ApplicationDetailPage';
+import AttendanceManagementPage from './pages/attendance/AttendanceManagementPage';
+import HomeworkManagementPage from './pages/homework/HomeworkManagementPage';
+import ExamsPage from './pages/exams/ExamsPage';
+import TeachersPage from './pages/teachers/TeachersPage';
+import TeacherDetailPage from './pages/teachers/TeacherDetailPage';
+import StaffManagementPage from './pages/staff/StaffManagementPage';
+import StaffDetailPage from './pages/staff/StaffDetailPage';
+import StaffAttendancePage from './pages/staff/StaffAttendancePage';
+import ParentsPage from './pages/parents/ParentsPage';
+import ParentDetailPage from './pages/parents/ParentDetailPage';
 import ComingSoonPage from '../../components/common/ComingSoonPage';
 
 const SCHOOL_ERP_NAV = [
@@ -28,7 +38,9 @@ const SCHOOL_ERP_NAV = [
     { to: '/school/homework', label: 'Homework', Icon: FileText },
     { to: '/school/exams', label: 'Exams', Icon: BookOpen },
     { to: '/school/transport', label: 'Transport', Icon: Bus },
+    { to: '/school/teachers', label: 'Teachers', Icon: UserCog },
     { to: '/school/staff', label: 'Staff', Icon: UserCog },
+    { to: '/school/parents', label: 'Parents', Icon: UserCog },
     { to: '/school/notices', label: 'Notices', Icon: Megaphone },
     { to: '/school/library', label: 'Library', Icon: Library },
     { to: '/school/reports', label: 'Reports', Icon: BarChart3 },
@@ -51,6 +63,22 @@ export default function SchoolErpApp() {
                 <Route path="subjects/*" element={<Navigate to="/school/classes/subjects" replace />} />
                 <Route path="timetable" element={<Navigate to="/school/classes/timetable" replace />} />
                 <Route path="timetable/*" element={<Navigate to="/school/classes/timetable" replace />} />
+                <Route path="attendance/*" element={<AttendanceManagementPage />} />
+                <Route path="homework" element={<HomeworkManagementPage />} />
+                <Route path="homework/*" element={<HomeworkManagementPage />} />
+                <Route path="assignments" element={<HomeworkManagementPage />} />
+                <Route path="assignments/*" element={<HomeworkManagementPage />} />
+                <Route path="exams/*" element={<ExamsPage />} />
+
+                {/* ── PEOPLE MODULE ROUTES ── */}
+                <Route path="teachers" element={<TeachersPage />} />
+                <Route path="teachers/:id" element={<TeacherDetailPage />} />
+                <Route path="staff" element={<StaffManagementPage />} />
+                <Route path="staff/attendance" element={<StaffAttendancePage />} />
+                <Route path="staff/:id" element={<StaffDetailPage />} />
+                <Route path="parents" element={<ParentsPage />} />
+                <Route path="parents/:id" element={<ParentDetailPage />} />
+
                 <Route path="roles" element={<RolesAndPermissionsPage />} />
                 <Route path="*" element={<ComingSoonPage />} />
             </Routes>

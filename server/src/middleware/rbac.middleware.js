@@ -132,6 +132,8 @@ export const requireDynamicPermission = (featureId, action = 'view') => async (r
             return next(ApiError.forbidden(`Access denied for feature: ${featureId}`));
         }
 
+        req.userFeaturePerm = featurePerms;
+
         // Must have pageAccess
         if (!featurePerms.pageAccess) {
             return next(ApiError.forbidden(`Access to this page has been disabled by the School Administrator.`));

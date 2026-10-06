@@ -12,6 +12,10 @@ import { uploadApi } from './api/uploadApi';
 import { schoolErpApi } from './api/schoolErpApi';
 import { rolesApi } from './api/rolesApi';
 import { admissionsApi } from './api/admissionsApi';
+import { attendanceApi } from './api/attendanceApi';
+import { homeworkApi } from './api/homeworkApi';
+import { examApi } from './api/examApi';
+import { peopleApi } from './api/peopleApi';
 import authReducer from './slices/authSlice';
 
 export const store = configureStore({
@@ -26,6 +30,10 @@ export const store = configureStore({
         [schoolErpApi.reducerPath]: schoolErpApi.reducer,
         [rolesApi.reducerPath]: rolesApi.reducer,
         [admissionsApi.reducerPath]: admissionsApi.reducer,
+        [attendanceApi.reducerPath]: attendanceApi.reducer,
+        [homeworkApi.reducerPath]: homeworkApi.reducer,
+        [examApi.reducerPath]: examApi.reducer,
+        [peopleApi.reducerPath]: peopleApi.reducer,
     },
     middleware: (getDefaultMiddleware) =>
         getDefaultMiddleware()
@@ -37,6 +45,10 @@ export const store = configureStore({
             .concat(uploadApi.middleware)
             .concat(schoolErpApi.middleware)
             .concat(rolesApi.middleware)
-            .concat(admissionsApi.middleware),
+            .concat(admissionsApi.middleware)
+            .concat(attendanceApi.middleware)
+            .concat(homeworkApi.middleware)
+            .concat(examApi.middleware)
+            .concat(peopleApi.middleware),
     devTools: import.meta.env.DEV,
 });

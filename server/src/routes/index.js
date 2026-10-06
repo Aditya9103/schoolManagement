@@ -8,6 +8,10 @@ import classRoutes    from '../modules/academic/academic.routes.js';
 import studentRoutes  from '../modules/student/student.routes.js';
 import roleRoutes     from '../modules/role/role.routes.js';
 import admissionRoutes from '../modules/admission/admission.routes.js';
+import attendanceRoutes from '../modules/attendance/attendance.routes.js';
+import homeworkRoutes   from '../modules/homework/homework.routes.js';
+import examRoutes       from '../modules/exam/exam.routes.js';
+import peopleRoutes     from '../modules/people/people.routes.js';
 
 /**
  * routes/index.js — Central API router for PrimeSchoolOs (v1).
@@ -49,10 +53,11 @@ router.use('/students', studentRoutes);
 
 // Dynamic Roles & Permissions Matrix
 router.use('/roles', roleRoutes);
-// router.use('/attendance', attendanceRoutes);
+router.use('/attendance', attendanceRoutes);
+router.use('/people', peopleRoutes);
 // router.use('/fees',       feeRoutes);
-// router.use('/homework',   homeworkRoutes);
-// router.use('/exams',      examRoutes);
+router.use('/homework',   homeworkRoutes);
+router.use('/exams',      examRoutes);
 // router.use('/transport',  transportRoutes);
 // router.use('/notices',    noticeRoutes);
 // router.use('/timetable',  timetableRoutes);

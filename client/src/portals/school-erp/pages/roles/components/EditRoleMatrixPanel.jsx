@@ -39,6 +39,7 @@ const MODULE_COLOR_MAP = {
     sky: 'bg-sky-50 text-sky-600 border-sky-200',
     orange: 'bg-orange-50 text-orange-600 border-orange-200',
     violet: 'bg-violet-50 text-violet-600 border-violet-200',
+    indigo: 'bg-indigo-50 text-indigo-600 border-indigo-200',
 };
 
 export default function EditRoleMatrixPanel({
@@ -127,6 +128,21 @@ export default function EditRoleMatrixPanel({
                 [featureId]: updatedFeature,
             };
         });
+    };
+
+    // Scope selection change
+    const handleScopeChange = (featureId, newScope) => {
+        setPermissions((prev) => {
+            const existing = prev[featureId] || {};
+            return {
+                ...prev,
+                [featureId]: {
+                    ...existing,
+                    dataScope: newScope,
+                },
+            };
+        });
+        setHasUnsavedChanges(true);
     };
 
     // Master module toggle: turn all features in module ON or OFF
@@ -444,6 +460,7 @@ export default function EditRoleMatrixPanel({
                                                 <th className="py-2.5 px-2 text-center">Edit</th>
                                                 <th className="py-2.5 px-2 text-center">Delete</th>
                                                 <th className="py-2.5 px-2 text-center">Export</th>
+                                                <th className="py-2.5 px-3 text-center">Data Scope</th>
                                                 <th className="py-2.5 px-4 text-center">Other</th>
                                             </tr>
                                         </thead>
@@ -537,6 +554,27 @@ export default function EditRoleMatrixPanel({
                                                                 }
                                                                 className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300 cursor-pointer"
                                                             />
+                                                        </td>
+
+                                                        {/* Data Scope Dropdown */}
+                                                        <td className="py-2.5 px-3 text-center">
+                                                            {feat.supportedScopes && feat.supportedScopes.length > 0 ? (
+                                                                <select
+                                                                    value={featurePerms.dataScope || feat.defaultScope || 'ALL_SCHOOL'}
+                                                                    onChange={(e) => handleScopeChange(feat.id, e.target.value)}
+                                                                    className="text-[11px] font-semibold bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg px-2 py-1 text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer"
+                                                                >
+                                                                    {feat.supportedScopes.map((scopeVal) => (
+                                                                        <option key={scopeVal} value={scopeVal}>
+                                                                            {scopeVal.replace(/_/g, ' ')}
+                                                                        </option>
+                                                                    ))}
+                                                                </select>
+                                                            ) : (
+                                                                <span className="text-[11px] font-medium text-slate-500">
+                                                                    {featurePerms.dataScope ? featurePerms.dataScope.replace(/_/g, ' ') : 'All School'}
+                                                                </span>
+                                                            )}
                                                         </td>
 
                                                         {/* Other Granular Action */}

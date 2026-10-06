@@ -42,6 +42,47 @@ export const getRoles = async (schoolId) => {
 
     const roles = await Role.find({ schoolId }).sort({ isSystemRole: -1, createdAt: 1 });
 
+    // Sync any newly added features (e.g. people module) to existing role documents
+    for (const role of roles) {
+        let changed = false;
+        const defaultPreset = DEFAULT_SYSTEM_ROLES.find(r => r.name.toLowerCase() === role.name.toLowerCase());
+        
+        MODULE_DEFINITIONS.forEach(mod => {
+            mod.features.forEach(feat => {
+                const current = role.permissions.get ? role.permissions.get(feat.id) : role.permissions[feat.id];
+                if (!current) {
+                    const presetVal = defaultPreset?.permissions?.[feat.id] || {
+                        pageAccess: false,
+                        view: false,
+                        create: false,
+                        edit: false,
+                        delete: false,
+                        export: false,
+                        other: {},
+                        dataScope: feat.defaultScope || 'OWN_RECORDS'
+                    };
+                    if (role.permissions.set) {
+                        role.permissions.set(feat.id, presetVal);
+                    } else {
+                        role.permissions[feat.id] = presetVal;
+                    }
+                    changed = true;
+                } else if (!current.dataScope) {
+                    current.dataScope = feat.defaultScope || 'ALL_SCHOOL';
+                    if (role.permissions.set) {
+                        role.permissions.set(feat.id, current);
+                    }
+                    changed = true;
+                }
+            });
+        });
+
+        if (changed) {
+            role.markModified('permissions');
+            await role.save();
+        }
+    }
+
     // Dynamically calculate assigned users count
     const enrichedRoles = await Promise.all(
         roles.map(async (role) => {
@@ -231,7 +272,8 @@ export const getMyPermissions = async (user) => {
                     edit: true,
                     delete: true,
                     export: true,
-                    other: feat.otherLabel ? { [feat.otherLabel]: true } : {}
+                    other: feat.otherLabel ? { [feat.otherLabel]: true } : {},
+                    dataScope: 'ALL_SCHOOL'
                 };
             });
         });

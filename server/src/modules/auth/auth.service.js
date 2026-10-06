@@ -70,6 +70,14 @@ export const sendOtp = async (identifier, purpose, channel = 'email') => {
         email = target;
     }
 
+    // For forgot password, check if account exists first
+    if (purpose === OTP_CONFIG.PURPOSES.FORGOT_PASSWORD) {
+        const user = isEmail ? await userRepo.findByEmail(target) : await userRepo.findByPhone(target);
+        if (!user) {
+            throw ApiError.notFound('No registered account was found with this email or mobile number.');
+        }
+    }
+
     // Invalidate any existing active OTP for this identifier+purpose
     await OtpStore.updateMany(
         {
@@ -99,13 +107,22 @@ export const sendOtp = async (identifier, purpose, channel = 'email') => {
         await sendWhatsAppOtp({ phone: target, otp });
         logger.info(`📱 WhatsApp OTP dispatched to +${target} (${purpose})`);
     } else {
-        await sendOtpEmail({
-            to: target,
-            otp,
-            purpose,
-            expiryMinutes: OTP_CONFIG.EXPIRES_IN_MINUTES,
-        });
-        logger.info(`📧 Brevo Email OTP dispatched to ${target} (${purpose})`);
+        try {
+            await sendOtpEmail({
+                to: target,
+                otp,
+                purpose,
+                expiryMinutes: OTP_CONFIG.EXPIRES_IN_MINUTES,
+            });
+            logger.info(`📧 Brevo Email OTP dispatched to ${target} (${purpose})`);
+        } catch (emailErr) {
+            logger.error(`❌ Failed to dispatch email OTP to ${target}: ${emailErr.message}`);
+            if (env.nodeEnv !== 'production') {
+                logger.warn(`⚠️ [DEV-FALLBACK] Email delivery failed, but OTP is generated in DB/logs: ${otp}`);
+            } else {
+                throw ApiError.internal('Unable to send verification email. Please check your email configuration.');
+            }
+        }
     }
 
     logger.info(`🔑 [DEV-DIAGNOSTIC] OTP for ${target} [${effectiveChannel.toUpperCase()}]: ${otp}`);
@@ -506,9 +523,12 @@ export const verifyResidentRegistration = async (email, otp, deviceInfo = {}) =>
 export const resetPassword = async (email, otp, newPassword) => {
     await verifyOtp(email, otp, OTP_CONFIG.PURPOSES.FORGOT_PASSWORD);
 
-    const user = await userRepo.findByEmail(email, true); // Include passwordHash
+    const isEmail = String(email).includes('@');
+    const user = isEmail
+        ? await userRepo.findByEmail(email, true)
+        : await userRepo.findByPhone(normalizePhone(email), true);
     if (!user) {
-        throw ApiError.notFound('User');
+        throw ApiError.notFound('No account found for this user.');
     }
 
     // Check against password history

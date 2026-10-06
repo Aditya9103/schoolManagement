@@ -60,6 +60,47 @@ export const MODULE_DEFINITIONS = [
         ]
     },
     {
+        id: 'people',
+        name: 'People & Staff Management',
+        description: 'Manage teachers, administrative/support staff, parents, and relationship bindings',
+        icon: 'Users',
+        color: 'indigo',
+        features: [
+            {
+                id: 'teachers_directory',
+                label: 'Teachers Directory',
+                desc: 'View profiles, instructional workload, teaching schedules, and evaluations',
+                supportedScopes: ['ALL_SCHOOL', 'MY_DEPARTMENT', 'OWN_RECORDS'],
+                defaultScope: 'ALL_SCHOOL',
+                otherLabel: 'Assign Classes & Subjects'
+            },
+            {
+                id: 'staff_management',
+                label: 'Staff Management',
+                desc: 'Manage non-teaching employees, reporting hierarchies, and assigned administrative tasks',
+                supportedScopes: ['ALL_SCHOOL', 'MY_DEPARTMENT', 'OWN_RECORDS'],
+                defaultScope: 'ALL_SCHOOL',
+                otherLabel: 'Manage Work Schedule'
+            },
+            {
+                id: 'staff_attendance',
+                label: 'Staff Attendance',
+                desc: 'Oversee daily employee punch-ins, monthly attendance registers, and leave records',
+                supportedScopes: ['ALL_SCHOOL', 'MY_DEPARTMENT', 'OWN_RECORDS'],
+                defaultScope: 'ALL_SCHOOL',
+                otherLabel: 'Mark Staff Attendance'
+            },
+            {
+                id: 'parents_directory',
+                label: 'Parents & Guardians',
+                desc: 'Manage family profiles, student guardianship links, and direct parent notifications',
+                supportedScopes: ['ALL_SCHOOL', 'PARENTS_OF_ASSIGNED_STUDENTS', 'OWN_RECORDS'],
+                defaultScope: 'ALL_SCHOOL',
+                otherLabel: 'Send Direct Message'
+            }
+        ]
+    },
+    {
         id: 'finance',
         name: 'Finance & Accounts',
         description: 'Manage fee structures, collections, invoices and expenses',
@@ -116,22 +157,32 @@ export const MODULE_DEFINITIONS = [
     }
 ];
 
-// Helper to build a permission object
-const buildPerm = (pageAccess = false, view = false, create = false, edit = false, del = false, exp = false, other = {}) => ({
+// Helper to build a permission object with generic dataScope
+export const buildPerm = (
+    pageAccess = false,
+    view = false,
+    create = false,
+    edit = false,
+    del = false,
+    exp = false,
+    other = {},
+    dataScope = 'ALL_SCHOOL'
+) => ({
     pageAccess,
     view,
     create,
     edit,
     delete: del,
     export: exp,
-    other: other || {}
+    other: other || {},
+    dataScope: dataScope || 'ALL_SCHOOL'
 });
 
 // Full access map for School Admin
 const fullPermissions = {};
 MODULE_DEFINITIONS.forEach(mod => {
     mod.features.forEach(feat => {
-        fullPermissions[feat.id] = buildPerm(true, true, true, true, true, true, feat.otherLabel ? { [feat.otherLabel]: true } : {});
+        fullPermissions[feat.id] = buildPerm(true, true, true, true, true, true, feat.otherLabel ? { [feat.otherLabel]: true } : {}, 'ALL_SCHOOL');
     });
 });
 
@@ -157,7 +208,7 @@ export const DEFAULT_SYSTEM_ROLES = [
             MODULE_DEFINITIONS.forEach(mod => {
                 mod.features.forEach(feat => {
                     const isSettings = mod.id === 'settings';
-                    perms[feat.id] = buildPerm(true, true, !isSettings, !isSettings, false, true, feat.otherLabel ? { [feat.otherLabel]: true } : {});
+                    perms[feat.id] = buildPerm(true, true, !isSettings, !isSettings, false, true, feat.otherLabel ? { [feat.otherLabel]: true } : {}, 'ALL_SCHOOL');
                 });
             });
             return perms;
@@ -173,9 +224,9 @@ export const DEFAULT_SYSTEM_ROLES = [
         permissions: (() => {
             const perms = {};
             MODULE_DEFINITIONS.forEach(mod => {
-                const allowed = ['dashboard', 'students', 'admissions', 'academic', 'communication'].includes(mod.id);
+                const allowed = ['dashboard', 'students', 'admissions', 'academic', 'people', 'communication'].includes(mod.id);
                 mod.features.forEach(feat => {
-                    perms[feat.id] = buildPerm(allowed, allowed, allowed, allowed, false, allowed, {});
+                    perms[feat.id] = buildPerm(allowed, allowed, allowed, allowed, false, allowed, feat.otherLabel ? { [feat.otherLabel]: true } : {}, 'ALL_SCHOOL');
                 });
             });
             return perms;
@@ -183,7 +234,7 @@ export const DEFAULT_SYSTEM_ROLES = [
     },
     {
         name: 'Teacher',
-        description: 'Teaching staff with academic access: attendance, homework, exams and timetable.',
+        description: 'Teaching staff with academic access: attendance, homework, exams, timetable, and parent contact.',
         badge: 'System',
         color: 'emerald',
         icon: 'BookOpen',
@@ -193,11 +244,19 @@ export const DEFAULT_SYSTEM_ROLES = [
             MODULE_DEFINITIONS.forEach(mod => {
                 mod.features.forEach(feat => {
                     if (['academic_attendance', 'homework_assignments'].includes(feat.id)) {
-                        perms[feat.id] = buildPerm(true, true, true, true, false, false, {});
-                    } else if (['students_list', 'student_profile', 'academic_timetable', 'exams_results', 'announcements_circulars'].includes(feat.id)) {
-                        perms[feat.id] = buildPerm(true, true, false, false, false, false, {});
+                        perms[feat.id] = buildPerm(true, true, true, true, false, false, {}, 'ASSIGNED_CLASSES');
+                    } else if (feat.id === 'exams_results') {
+                        perms[feat.id] = buildPerm(true, true, false, true, false, false, {}, 'ASSIGNED_SUBJECTS');
+                    } else if (feat.id === 'teachers_directory') {
+                        perms[feat.id] = buildPerm(true, true, false, false, false, false, {}, 'ALL_SCHOOL');
+                    } else if (feat.id === 'parents_directory') {
+                        perms[feat.id] = buildPerm(true, true, false, false, false, false, { 'Send Direct Message': true }, 'PARENTS_OF_ASSIGNED_STUDENTS');
+                    } else if (feat.id === 'staff_attendance') {
+                        perms[feat.id] = buildPerm(true, true, false, false, false, false, {}, 'OWN_RECORDS');
+                    } else if (['students_list', 'student_profile', 'academic_timetable', 'announcements_circulars'].includes(feat.id)) {
+                        perms[feat.id] = buildPerm(true, true, false, false, false, false, {}, 'ASSIGNED_CLASSES');
                     } else {
-                        perms[feat.id] = buildPerm(false, false, false, false, false, false, {});
+                        perms[feat.id] = buildPerm(false, false, false, false, false, false, {}, 'OWN_RECORDS');
                     }
                 });
             });
@@ -216,11 +275,15 @@ export const DEFAULT_SYSTEM_ROLES = [
             MODULE_DEFINITIONS.forEach(mod => {
                 mod.features.forEach(feat => {
                     if (mod.id === 'finance') {
-                        perms[feat.id] = buildPerm(true, true, true, true, false, true, { 'Send Reminders': true, 'Print Invoices': true });
+                        perms[feat.id] = buildPerm(true, true, true, true, false, true, { 'Send Reminders': true, 'Print Invoices': true }, 'ALL_SCHOOL');
+                    } else if (feat.id === 'staff_management') {
+                        perms[feat.id] = buildPerm(true, true, false, false, false, false, {}, 'ALL_SCHOOL');
+                    } else if (feat.id === 'parents_directory') {
+                        perms[feat.id] = buildPerm(true, true, false, false, false, false, { 'Send Direct Message': true }, 'ALL_SCHOOL');
                     } else if (['dashboard_main', 'students_list', 'student_profile', 'announcements_circulars'].includes(feat.id)) {
-                        perms[feat.id] = buildPerm(true, true, false, false, false, false, {});
+                        perms[feat.id] = buildPerm(true, true, false, false, false, false, {}, 'ALL_SCHOOL');
                     } else {
-                        perms[feat.id] = buildPerm(false, false, false, false, false, false, {});
+                        perms[feat.id] = buildPerm(false, false, false, false, false, false, {}, 'OWN_RECORDS');
                     }
                 });
             });
@@ -229,7 +292,7 @@ export const DEFAULT_SYSTEM_ROLES = [
     },
     {
         name: 'Receptionist',
-        description: 'Front office operations, visitor check-in, admissions inquiries and phone logs.',
+        description: 'Front office operations, visitor check-in, admissions inquiries, staff and parent directories.',
         badge: 'System',
         color: 'pink',
         icon: 'UserCheck',
@@ -239,11 +302,17 @@ export const DEFAULT_SYSTEM_ROLES = [
             MODULE_DEFINITIONS.forEach(mod => {
                 mod.features.forEach(feat => {
                     if (['admissions_apps', 'admissions_enquiry', 'gate_pass_visitors'].includes(feat.id)) {
-                        perms[feat.id] = buildPerm(true, true, true, true, false, false, { 'Print Pass': true });
+                        perms[feat.id] = buildPerm(true, true, true, true, false, false, { 'Print Pass': true }, 'ALL_SCHOOL');
+                    } else if (feat.id === 'parents_directory') {
+                        perms[feat.id] = buildPerm(true, true, true, true, false, false, { 'Send Direct Message': true }, 'ALL_SCHOOL');
+                    } else if (feat.id === 'teachers_directory' || feat.id === 'staff_management') {
+                        perms[feat.id] = buildPerm(true, true, false, false, false, false, {}, 'ALL_SCHOOL');
+                    } else if (feat.id === 'staff_attendance') {
+                        perms[feat.id] = buildPerm(true, true, true, false, false, false, { 'Mark Staff Attendance': true }, 'ALL_SCHOOL');
                     } else if (['students_list', 'announcements_circulars'].includes(feat.id)) {
-                        perms[feat.id] = buildPerm(true, true, false, false, false, false, {});
+                        perms[feat.id] = buildPerm(true, true, false, false, false, false, {}, 'ALL_SCHOOL');
                     } else {
-                        perms[feat.id] = buildPerm(false, false, false, false, false, false, {});
+                        perms[feat.id] = buildPerm(false, false, false, false, false, false, {}, 'OWN_RECORDS');
                     }
                 });
             });
@@ -262,11 +331,13 @@ export const DEFAULT_SYSTEM_ROLES = [
             MODULE_DEFINITIONS.forEach(mod => {
                 mod.features.forEach(feat => {
                     if (feat.id === 'library_books') {
-                        perms[feat.id] = buildPerm(true, true, true, true, true, true, { 'Barcode Print': true });
+                        perms[feat.id] = buildPerm(true, true, true, true, true, true, { 'Barcode Print': true }, 'ALL_SCHOOL');
+                    } else if (['teachers_directory', 'staff_management'].includes(feat.id)) {
+                        perms[feat.id] = buildPerm(true, true, false, false, false, false, {}, 'ALL_SCHOOL');
                     } else if (['students_list', 'student_profile', 'announcements_circulars'].includes(feat.id)) {
-                        perms[feat.id] = buildPerm(true, true, false, false, false, false, {});
+                        perms[feat.id] = buildPerm(true, true, false, false, false, false, {}, 'ALL_SCHOOL');
                     } else {
-                        perms[feat.id] = buildPerm(false, false, false, false, false, false, {});
+                        perms[feat.id] = buildPerm(false, false, false, false, false, false, {}, 'OWN_RECORDS');
                     }
                 });
             });
@@ -285,11 +356,15 @@ export const DEFAULT_SYSTEM_ROLES = [
             MODULE_DEFINITIONS.forEach(mod => {
                 mod.features.forEach(feat => {
                     if (feat.id === 'transport_fleet') {
-                        perms[feat.id] = buildPerm(true, true, true, true, false, true, { 'GPS Tracking': true });
+                        perms[feat.id] = buildPerm(true, true, true, true, false, true, { 'GPS Tracking': true }, 'ALL_SCHOOL');
+                    } else if (['staff_management', 'staff_attendance'].includes(feat.id)) {
+                        perms[feat.id] = buildPerm(true, true, false, true, false, true, { 'Mark Staff Attendance': true }, 'MY_DEPARTMENT');
+                    } else if (feat.id === 'parents_directory') {
+                        perms[feat.id] = buildPerm(true, true, false, false, false, false, { 'Send Direct Message': true }, 'ALL_SCHOOL');
                     } else if (['students_list', 'student_profile', 'announcements_circulars'].includes(feat.id)) {
-                        perms[feat.id] = buildPerm(true, true, false, false, false, false, {});
+                        perms[feat.id] = buildPerm(true, true, false, false, false, false, {}, 'ALL_SCHOOL');
                     } else {
-                        perms[feat.id] = buildPerm(false, false, false, false, false, false, {});
+                        perms[feat.id] = buildPerm(false, false, false, false, false, false, {}, 'OWN_RECORDS');
                     }
                 });
             });
@@ -308,11 +383,15 @@ export const DEFAULT_SYSTEM_ROLES = [
             MODULE_DEFINITIONS.forEach(mod => {
                 mod.features.forEach(feat => {
                     if (feat.id === 'hostel_rooms') {
-                        perms[feat.id] = buildPerm(true, true, true, true, false, false, {});
+                        perms[feat.id] = buildPerm(true, true, true, true, false, false, {}, 'ALL_SCHOOL');
+                    } else if (['staff_management', 'staff_attendance'].includes(feat.id)) {
+                        perms[feat.id] = buildPerm(true, true, false, false, false, false, {}, 'MY_DEPARTMENT');
+                    } else if (feat.id === 'parents_directory') {
+                        perms[feat.id] = buildPerm(true, true, false, false, false, false, { 'Send Direct Message': true }, 'ALL_SCHOOL');
                     } else if (['students_list', 'student_profile', 'announcements_circulars'].includes(feat.id)) {
-                        perms[feat.id] = buildPerm(true, true, false, false, false, false, {});
+                        perms[feat.id] = buildPerm(true, true, false, false, false, false, {}, 'ALL_SCHOOL');
                     } else {
-                        perms[feat.id] = buildPerm(false, false, false, false, false, false, {});
+                        perms[feat.id] = buildPerm(false, false, false, false, false, false, {}, 'OWN_RECORDS');
                     }
                 });
             });
@@ -330,12 +409,18 @@ export const DEFAULT_SYSTEM_ROLES = [
             const perms = {};
             MODULE_DEFINITIONS.forEach(mod => {
                 mod.features.forEach(feat => {
-                    if (['expenses_budget', 'announcements_circulars'].includes(feat.id)) {
-                        perms[feat.id] = buildPerm(true, true, true, true, false, true, {});
+                    if (['staff_management', 'staff_attendance'].includes(feat.id)) {
+                        perms[feat.id] = buildPerm(true, true, true, true, true, true, { 'Manage Work Schedule': true, 'Mark Staff Attendance': true }, 'ALL_SCHOOL');
+                    } else if (feat.id === 'teachers_directory') {
+                        perms[feat.id] = buildPerm(true, true, true, true, false, true, { 'Assign Classes & Subjects': true }, 'ALL_SCHOOL');
+                    } else if (feat.id === 'parents_directory') {
+                        perms[feat.id] = buildPerm(true, true, false, false, false, false, {}, 'ALL_SCHOOL');
+                    } else if (['expenses_budget', 'announcements_circulars'].includes(feat.id)) {
+                        perms[feat.id] = buildPerm(true, true, true, true, false, true, {}, 'ALL_SCHOOL');
                     } else if (['dashboard_main'].includes(feat.id)) {
-                        perms[feat.id] = buildPerm(true, true, false, false, false, false, {});
+                        perms[feat.id] = buildPerm(true, true, false, false, false, false, {}, 'ALL_SCHOOL');
                     } else {
-                        perms[feat.id] = buildPerm(false, false, false, false, false, false, {});
+                        perms[feat.id] = buildPerm(false, false, false, false, false, false, {}, 'OWN_RECORDS');
                     }
                 });
             });
