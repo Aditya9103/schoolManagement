@@ -4,13 +4,7 @@ import { MoreVertical } from 'lucide-react';
 
 export default function RecentAdmissionsTable({ admissions, data }) {
     const rawList = data || admissions;
-    const list = rawList && rawList.length > 0 ? rawList : [
-        { id: '1', name: 'Aarav Mehta', class: 'Class 1', admissionDate: '22 Sep 2026', status: 'Confirmed', avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&h=100&fit=crop' },
-        { id: '2', name: 'Saanvi Gupta', class: 'Class 6', admissionDate: '21 Sep 2026', status: 'Pending', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop' },
-        { id: '3', name: 'Kabir Singh', class: 'Class 3', admissionDate: '20 Sep 2026', status: 'Confirmed', avatar: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=100&h=100&fit=crop' },
-        { id: '4', name: 'Ananya Patel', class: 'Class 9', admissionDate: '19 Sep 2026', status: 'Pending', avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop' },
-        { id: '5', name: 'Vihaan Kumar', class: 'Class 2', admissionDate: '18 Sep 2026', status: 'Confirmed', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop' },
-    ];
+    const list = Array.isArray(rawList) ? rawList : [];
 
     return (
         <div className="bg-white rounded-2xl border border-slate-100 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] p-4 sm:p-5 hover:shadow-md transition-shadow flex flex-col justify-between h-full">
@@ -39,7 +33,14 @@ export default function RecentAdmissionsTable({ admissions, data }) {
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-50">
-                        {list.slice(0, 5).map((student, index) => (
+                        {list.length === 0 ? (
+                            <tr>
+                                <td colSpan="6" className="py-8 text-center text-slate-400 font-medium">
+                                    No recent admissions recorded.
+                                </td>
+                            </tr>
+                        ) : (
+                            list.slice(0, 5).map((student, index) => (
                             <tr key={student.id || index} className="hover:bg-slate-50/80 transition-colors">
                                 <td className="py-2 pl-1 font-mono text-slate-600 font-semibold font-bold text-[11px]">
                                     {index + 1}
@@ -83,7 +84,7 @@ export default function RecentAdmissionsTable({ admissions, data }) {
                                     </button>
                                 </td>
                             </tr>
-                        ))}
+                        )))}
                     </tbody>
                 </table>
             </div>

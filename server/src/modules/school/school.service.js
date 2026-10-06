@@ -114,7 +114,7 @@ export const getPlatformStats = async () => {
 
 // ── Schools Growth ────────────────────────────────────────────────────────────
 export const getSchoolsGrowth = async (months = 12) => {
-    const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     const now = new Date();
     // Default 12 month progression matching mockup (reaching 156 schools in Sep 2026)
     const baseCounts = [35, 45, 58, 65, 78, 92, 108, 124, 156, 142, 148, 156];
@@ -130,7 +130,7 @@ export const getSchoolsGrowth = async (months = 12) => {
 
 // ── Revenue (mock Phase 1 — real in Phase 4) ─────────────────────────────────
 export const getRevenueOverview = async (months = 6) => {
-    const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     const now = new Date();
     const trendValues = [2400000, 3200000, 4860000, 3800000, 4200000, 4860000];
     return Array.from({ length: months }, (_, i) => {
@@ -265,9 +265,9 @@ export const getSchoolDashboardStats = async (schoolId) => {
     const realTeacherCount = await User.countDocuments({ schoolId: school._id, role: { $in: ['TEACHER', 'PRINCIPAL'] } });
     const realStaffCount = await User.countDocuments({ schoolId: school._id, role: { $in: ['ACCOUNTANT', 'LIBRARIAN', 'FRONT_OFFICE', 'DRIVER', 'STAFF'] } });
 
-    const totalStudents = realStudentCount > 0 ? realStudentCount : (school.studentCount || 1248);
-    const totalTeachers = realTeacherCount > 0 ? realTeacherCount : (school.staffCount || 86);
-    const totalStaff = realStaffCount > 0 ? realStaffCount : 12;
+    const totalStudents = realStudentCount;
+    const totalTeachers = realTeacherCount;
+    const totalStaff = realStaffCount;
 
     // Fetch recent admissions from DB
     const recentStudents = await Student.find({ schoolId: school._id })
@@ -279,44 +279,151 @@ export const getSchoolDashboardStats = async (schoolId) => {
     // Fetch classes for distribution
     const classes = await Class.find({ schoolId: school._id }).sort({ order: 1 }).lean();
 
-    const formattedRecentAdmissions = recentStudents.length > 0
-        ? recentStudents.map((s, index) => ({
-            id: s._id.toString(),
-            name: `${s.firstName} ${s.lastName}`.trim(),
-            class: s.classId?.name || `Class ${(index % 10) + 1}`,
-            admissionDate: new Date(s.admissionDate || s.createdAt || Date.now()).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
-            status: s.status === 'ACTIVE' ? 'Confirmed' : 'Pending',
-            avatar: s.avatarUrl || `https://images.unsplash.com/photo-${['1535713875002-d1d0cf377fde', '1494790108377-be9c29b29330', '1570295999919-56ceb5ecca61', '1438761681033-6461ffad8d80', '1507003211169-0a1dd7228f2d'][index % 5]}?w=100&h=100&fit=crop`,
-        }))
-        : [
-            { id: '1', name: 'Aarav Mehta', class: 'Class 1', admissionDate: '22 Sep 2026', status: 'Confirmed', avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&h=100&fit=crop' },
-            { id: '2', name: 'Saanvi Gupta', class: 'Class 6', admissionDate: '21 Sep 2026', status: 'Pending', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop' },
-            { id: '3', name: 'Kabir Singh', class: 'Class 3', admissionDate: '20 Sep 2026', status: 'Confirmed', avatar: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=100&h=100&fit=crop' },
-            { id: '4', name: 'Ananya Patel', class: 'Class 9', admissionDate: '19 Sep 2026', status: 'Pending', avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop' },
-            { id: '5', name: 'Vihaan Kumar', class: 'Class 2', admissionDate: '18 Sep 2026', status: 'Confirmed', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop' },
-        ];
+    const formattedRecentAdmissions = recentStudents.map((s, index) => ({
+        id: s._id.toString(),
+        name: `${s.firstName || ''} ${s.lastName || ''}`.trim() || 'Student',
+        class: s.classId?.name || 'Class',
+        admissionDate: new Date(s.admissionDate || s.createdAt || Date.now()).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
+        status: s.status === 'ACTIVE' ? 'Confirmed' : 'Pending',
+        avatar: s.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${s.firstName || index}`,
+    }));
 
-    const classesDistribution = classes.length > 0
-        ? classes.map((c, i) => {
-            const colors = ['#3B82F6', '#10B981', '#06B6D4', '#F59E0B', '#8B5CF6', '#EC4899', '#6366F1', '#F97316'];
-            const percent = Math.round(100 / classes.length);
-            return {
-                name: c.name,
-                students: Math.round(totalStudents * (percent / 100)),
-                percentage: percent,
-                color: colors[i % colors.length],
-            };
-        })
-        : [
-            { name: 'Class 1', students: 180, percentage: 14, color: '#3B82F6' },
-            { name: 'Class 2', students: 176, percentage: 14, color: '#10B981' },
-            { name: 'Class 3', students: 168, percentage: 13, color: '#06B6D4' },
-            { name: 'Class 4', students: 162, percentage: 13, color: '#F59E0B' },
-            { name: 'Class 5', students: 158, percentage: 13, color: '#8B5CF6' },
-            { name: 'Class 6', students: 152, percentage: 12, color: '#EC4899' },
-            { name: 'Class 7', students: 132, percentage: 11, color: '#6366F1' },
-            { name: 'Class 8', students: 120, percentage: 10, color: '#F97316' },
-        ];
+    // Real student counts per class
+    const studentCountByClass = await Student.aggregate([
+        { $match: { schoolId: school._id } },
+        { $group: { _id: '$classId', count: { $sum: 1 } } }
+    ]);
+    const countMap = new Map(studentCountByClass.map((c) => [c._id ? c._id.toString() : 'unassigned', c.count]));
+    const classColors = ['#3B82F6', '#10B981', '#06B6D4', '#F59E0B', '#8B5CF6', '#EC4899', '#6366F1', '#F97316'];
+
+    const classesDistribution = classes.map((c, i) => {
+        const enrolled = countMap.get(c._id.toString()) || 0;
+        const percentage = totalStudents > 0 ? Math.round((enrolled / totalStudents) * 100) : 0;
+        return {
+            name: c.name,
+            students: enrolled,
+            percentage,
+            color: classColors[i % classColors.length],
+        };
+    });
+
+    // Query real attendance for last 7 days
+    let weeklyAttendance = [];
+    let attendanceRateStr = '0%';
+    try {
+        const Attendance = (await import('../attendance/attendance.model.js')).default;
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+        const attendanceRecords = await Attendance.find({
+            schoolId: school._id,
+            date: { $gte: sevenDaysAgo }
+        }).sort({ date: 1 }).lean();
+
+        if (attendanceRecords.length > 0) {
+            const dayBuckets = {};
+            let totalPres = 0;
+            let totalPossible = 0;
+
+            attendanceRecords.forEach((rec) => {
+                const day = new Date(rec.date).toLocaleDateString('en-US', { weekday: 'short' });
+                if (!dayBuckets[day]) dayBuckets[day] = { present: 0, absent: 0, leave: 0, total: 0 };
+                const p = rec.statistics?.presentCount || 0;
+                const a = rec.statistics?.absentCount || 0;
+                const l = (rec.statistics?.lateCount || 0) + (rec.statistics?.excusedCount || 0);
+                const tot = rec.statistics?.totalStudents || (p + a + l);
+
+                dayBuckets[day].present += p;
+                dayBuckets[day].absent += a;
+                dayBuckets[day].leave += l;
+                dayBuckets[day].total += tot;
+
+                totalPres += p;
+                totalPossible += tot;
+            });
+
+            weeklyAttendance = Object.entries(dayBuckets).map(([day, val]) => ({ day, ...val }));
+            if (totalPossible > 0) {
+                attendanceRateStr = `${Math.round((totalPres / totalPossible) * 100)}%`;
+            }
+        }
+    } catch (e) {
+        // Attendance model fallback
+    }
+
+    // Query real schedule from Timetable
+    let todaySchedule = [];
+    try {
+        const Timetable = (await import('../academic/timetable.model.js')).default;
+        const todayDay = new Date().toLocaleDateString('en-US', { weekday: 'long' });
+        const timetables = await Timetable.find({ schoolId: school._id, isActive: true }).lean();
+        timetables.forEach((tt) => {
+            (tt.slots || []).filter((s) => s.day === todayDay).forEach((s) => {
+                todaySchedule.push({
+                    time: `${s.startTime || '08:00 AM'} - ${s.endTime || '08:45 AM'}`,
+                    title: s.isBreak ? s.breakTitle : `${s.subjectName || 'Class'} (${tt.className || ''})`,
+                    location: s.isBreak ? 'Campus' : 'Classroom',
+                    isLive: false,
+                    type: s.isBreak ? 'break' : 'class',
+                });
+            });
+        });
+    } catch (e) {
+        // Timetable query fallback
+    }
+
+    // Query real notices / announcements
+    let announcements = [];
+    try {
+        const Notification = (await import('../notification/notification.model.js')).default;
+        const notices = await Notification.find({
+            schoolId: school._id,
+            type: { $in: ['ANNOUNCEMENT', 'NOTICE'] }
+        }).sort({ createdAt: -1 }).limit(5).lean();
+
+        announcements = notices.map((n) => ({
+            id: n._id.toString(),
+            title: n.title,
+            desc: n.message,
+            timeAgo: new Date(n.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }),
+            icon: 'bell',
+            color: 'blue'
+        }));
+    } catch (e) {
+        // Notification query fallback
+    }
+
+    // Query real class performance & top performers from ExamResult
+    let classPerformance = [];
+    let topPerformers = [];
+    try {
+        const ExamResult = (await import('../exam/examResult.model.js')).default;
+        const examResults = await ExamResult.find({ schoolId: school._id }).lean();
+
+        if (examResults.length > 0) {
+            const classPerfMap = {};
+            examResults.forEach((r) => {
+                const cName = r.className || 'General';
+                if (!classPerfMap[cName]) classPerfMap[cName] = { total: 0, count: 0 };
+                classPerfMap[cName].total += Number(r.percentage) || 0;
+                classPerfMap[cName].count += 1;
+            });
+            classPerformance = Object.entries(classPerfMap).map(([className, data]) => ({
+                className,
+                avg: Math.round(data.total / data.count)
+            }));
+
+            const sortedResults = [...examResults].sort((a, b) => (b.percentage || 0) - (a.percentage || 0)).slice(0, 5);
+            topPerformers = sortedResults.map((doc, idx) => ({
+                rank: idx + 1,
+                name: doc.studentName || 'Student',
+                class: doc.className || '',
+                score: `${doc.percentage || 0}%`,
+                avatar: doc.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${doc.studentName || idx}`
+            }));
+        }
+    } catch (e) {
+        // ExamResult fallback
+    }
 
     return {
         school,
@@ -324,74 +431,27 @@ export const getSchoolDashboardStats = async (schoolId) => {
             totalStudents,
             totalTeachers,
             totalStaff,
-            feesCollected: 2480000,
-            feesCollectedFormatted: '₹ 24,80,000',
-            attendanceRate: '92%',
-            parentSatisfaction: 4.8,
-            parentReviewCount: 320,
+            feesCollected: 0,
+            feesCollectedFormatted: '₹ 0',
+            attendanceRate: attendanceRateStr,
+            parentSatisfaction: 5.0,
+            parentReviewCount: 0,
         },
         recentAdmissions: formattedRecentAdmissions,
         classesDistribution,
-        weeklyAttendance: [
-            { day: 'Mon', present: 1120, absent: 85, leave: 43, total: totalStudents },
-            { day: 'Tue', present: 1135, absent: 78, leave: 35, total: totalStudents },
-            { day: 'Wed', present: 1110, absent: 95, leave: 43, total: totalStudents },
-            { day: 'Thu', present: 1145, absent: 68, leave: 24, total: totalStudents },
-            { day: 'Fri', present: 1150, absent: 65, leave: 33, total: totalStudents },
-            { day: 'Sat', present: 1080, absent: 110, leave: 58, total: totalStudents },
-        ],
+        weeklyAttendance,
         feeCollectionSummary: {
-            collected: '₹ 24.8 L',
-            collectedChange: '+12%',
-            pending: '₹ 2.1 L',
-            pendingChange: '-5%',
-            totalExpected: '₹ 26.9 L',
-            monthlyData: [
-                { month: 'Apr', collected: 21.0, pending: 4.0 },
-                { month: 'May', collected: 23.0, pending: 3.5 },
-                { month: 'Jun', collected: 19.5, pending: 5.2 },
-                { month: 'Jul', collected: 24.0, pending: 3.0 },
-                { month: 'Aug', collected: 22.5, pending: 4.2 },
-                { month: 'Sep', collected: 24.8, pending: 2.1 },
-            ],
+            collected: '₹ 0',
+            collectedChange: '0%',
+            pending: '₹ 0',
+            pendingChange: '0%',
+            totalExpected: '₹ 0',
+            monthlyData: [],
         },
-        todaySchedule: [
-            { time: '08:00 AM', title: 'Assembly', location: 'School Ground', isLive: false, type: 'assembly' },
-            { time: '08:30 AM', title: 'Class 6A - Mathematics', location: 'Room 201', isLive: true, type: 'class' },
-            { time: '09:30 AM', title: 'Class 8B - Science', location: 'Room 305', isLive: true, type: 'class' },
-            { time: '10:30 AM', title: 'Staff Meeting', location: 'Conference Hall', isLive: false, type: 'meeting' },
-            { time: '01:00 PM', title: 'Class 10A - English', location: 'Room 402', isLive: false, type: 'class' },
-            { time: '02:30 PM', title: 'Class 12 - Physics', location: 'Room 501', isLive: false, type: 'class' },
-        ],
-        upcomingEvents: [
-            { date: '25', month: 'SEP', title: 'Parent-Teacher Meeting', time: '09:00 AM - 04:00 PM', color: 'purple' },
-            { date: '02', month: 'OCT', title: 'Gandhi Jayanti Celebration', time: 'All Day Event', color: 'emerald' },
-            { date: '10', month: 'OCT', title: 'Inter-School Science Exhibition', time: '09:00 AM - 03:00 PM', color: 'blue' },
-            { date: '15', month: 'OCT', title: 'Annual Sports Day', time: '08:00 AM - 05:00 PM', color: 'amber' },
-            { date: '21', month: 'OCT', title: 'Diwali Vacation Begins', time: 'All Day Event', color: 'rose' },
-        ],
-        classPerformance: [
-            { className: 'Class 1', avg: 92 },
-            { className: 'Class 2', avg: 88 },
-            { className: 'Class 3', avg: 85 },
-            { className: 'Class 4', avg: 90 },
-            { className: 'Class 5', avg: 87 },
-            { className: 'Class 6', avg: 91 },
-            { className: 'Class 7', avg: 89 },
-            { className: 'Class 8', avg: 86 },
-        ],
-        topPerformers: [
-            { rank: 1, name: 'Riya Sharma', class: 'Class 10', score: '98.2%', avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100&h=100&fit=crop' },
-            { rank: 2, name: 'Arjun Verma', class: 'Class 9', score: '97.6%', avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=100&h=100&fit=crop' },
-            { rank: 3, name: 'Meera Iyer', class: 'Class 12', score: '97.1%', avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=100&h=100&fit=crop' },
-            { rank: 4, name: 'Devansh Patel', class: 'Class 8', score: '96.8%', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop' },
-            { rank: 5, name: 'Aditi Singh', class: 'Class 11', score: '96.4%', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop' },
-        ],
-        announcements: [
-            { id: '1', title: 'Annual Sports Day 2026', timeAgo: '2 hours ago', icon: 'trophy', color: 'amber' },
-            { id: '2', title: 'Fee Payment Reminder', desc: 'Last date for Q3 fee payment is 30 September', timeAgo: '1 day ago', icon: 'wallet', color: 'rose' },
-            { id: '3', title: 'PTM Schedule', desc: 'Parent-Teacher Meeting scheduled for coming Friday', timeAgo: '2 days ago', icon: 'calendar', color: 'blue' },
-            { id: '4', title: 'Library New Books', desc: 'New collection of reference books available in catalog', timeAgo: '3 days ago', icon: 'book', color: 'emerald' },
-        ],
+        todaySchedule,
+        upcomingEvents: [],
+        classPerformance,
+        topPerformers,
+        announcements,
     };
 };

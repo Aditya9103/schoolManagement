@@ -3,17 +3,19 @@ import { Users, UserCheck, UserX, Clock, CalendarCheck, TrendingUp, TrendingDown
 
 export default function AttendanceMetrics({ summary = {} }) {
     const {
-        totalStudents = 1248,
-        totalStudentsDelta = '+5%',
-        presentToday = 1102,
-        presentTodayRate = '88.3%',
-        absentToday = 146,
-        absentTodayDelta = '-2%',
-        lateToday = 28,
-        lateTodayDelta = '+1%',
-        attendanceRate = 92.4,
-        attendanceRateDelta = '+4%',
+        totalStudents = 0,
+        totalStudentsDelta = 'Live',
+        presentToday = 0,
+        presentTodayRate = '0%',
+        absentToday = 0,
+        absentTodayDelta = 'Live',
+        lateToday = 0,
+        lateTodayDelta = 'Live',
+        attendanceRate = 0,
+        attendanceRateDelta = 'Live',
     } = summary;
+
+    const makeSpark = (val) => val > 0 ? [Math.round(val * 0.7), Math.round(val * 0.8), Math.round(val * 0.85), Math.round(val * 0.9), Math.round(val * 0.95), val] : [0, 0, 0, 0, 0, 0];
 
     const cards = [
         {
@@ -24,7 +26,7 @@ export default function AttendanceMetrics({ summary = {} }) {
             iconBg: 'bg-emerald-50 text-emerald-600 border border-emerald-100',
             Icon: Users,
             sparkColor: '#10b981',
-            sparkline: [40, 48, 55, 62, 60, 72, 85],
+            sparkline: makeSpark(totalStudents),
         },
         {
             title: 'Present Today',
@@ -34,7 +36,7 @@ export default function AttendanceMetrics({ summary = {} }) {
             iconBg: 'bg-blue-50 text-blue-600 border border-blue-100',
             Icon: UserCheck,
             sparkColor: '#3b82f6',
-            sparkline: [65, 70, 72, 80, 78, 86, 92],
+            sparkline: makeSpark(presentToday),
         },
         {
             title: 'Absent Today',
@@ -44,7 +46,7 @@ export default function AttendanceMetrics({ summary = {} }) {
             iconBg: 'bg-rose-50 text-rose-600 border border-rose-100',
             Icon: UserX,
             sparkColor: '#f43f5e',
-            sparkline: [30, 28, 22, 25, 20, 18, 14],
+            sparkline: makeSpark(absentToday),
         },
         {
             title: 'Late Today',
@@ -54,7 +56,7 @@ export default function AttendanceMetrics({ summary = {} }) {
             iconBg: 'bg-amber-50 text-amber-600 border border-amber-100',
             Icon: Clock,
             sparkColor: '#f59e0b',
-            sparkline: [12, 16, 14, 20, 18, 24, 28],
+            sparkline: makeSpark(lateToday),
         },
         {
             title: 'Attendance Rate',

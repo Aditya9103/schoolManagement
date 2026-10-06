@@ -10,7 +10,7 @@ export default function HeroBanner({ school, user, adminUser }) {
     }, []);
 
     const currentUser = user || adminUser;
-    const adminName = currentUser?.firstName || 'Rohit';
+    const adminName = currentUser?.firstName || currentUser?.name || 'Administrator';
 
     const hours = currentTime.getHours();
     const greeting =
@@ -29,9 +29,9 @@ export default function HeroBanner({ school, user, adminUser }) {
         hour12: true,
     });
 
-    const schoolName = school?.name || 'Greenwood International School';
-    const schoolCity = school?.address?.city ? `${school.address.city}, India` : 'Delhi, India';
-    const schoolTagline = school?.tagline || 'Nurturing Future Leaders';
+    const schoolName = school?.name || 'School ERP';
+    const schoolCity = school?.address?.city ? `${school.address.city}, India` : '';
+    const schoolTagline = school?.tagline || 'Excellence in Education';
     const bannerUrl =
         school?.coverImageUrl ||
         school?.bannerUrl ||

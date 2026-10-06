@@ -33,42 +33,6 @@ import {
 } from '../../../../store/api/attendanceApi';
 import { useGetClassesQuery } from '../../../../store/api/classApi';
 
-// Initial cohort matching screenshot
-const INITIAL_STUDENT_ROSTER = [
-    { studentId: '65a000000000000000000001', rollNo: '6A001', studentName: 'Aarav Sharma', avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150', status: 'PRESENT', remarks: '-' },
-    { studentId: '65a000000000000000000002', rollNo: '6A002', studentName: 'Ananya Verma', avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150', status: 'PRESENT', remarks: '-' },
-    { studentId: '65a000000000000000000003', rollNo: '6A003', studentName: 'Rohan Patel', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150', status: 'PRESENT', remarks: '-' },
-    { studentId: '65a000000000000000000004', rollNo: '6A004', studentName: 'Sneha Gupta', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150', status: 'ABSENT', remarks: 'Fever' },
-    { studentId: '65a000000000000000000005', rollNo: '6A005', studentName: 'Vihaan Singh', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150', status: 'PRESENT', remarks: '-' },
-    { studentId: '65a000000000000000000006', rollNo: '6A006', studentName: 'Kavya Joshi', avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150', status: 'LATE', remarks: 'Reached at 9:30 AM' },
-    { studentId: '65a000000000000000000007', rollNo: '6A007', studentName: 'Aditya Kumar', avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150', status: 'PRESENT', remarks: '-' },
-    { studentId: '65a000000000000000000008', rollNo: '6A008', studentName: 'Meera Iyer', avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150', status: 'PRESENT', remarks: '-' },
-    { studentId: '65a000000000000000000009', rollNo: '6A009', studentName: 'Arjun Nair', avatar: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=150', status: 'PRESENT', remarks: '-' },
-    { studentId: '65a000000000000000000010', rollNo: '6A010', studentName: 'Diya Sharma', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150', status: 'ABSENT', remarks: 'Medical leave' },
-    { studentId: '65a000000000000000000011', rollNo: '6A011', studentName: 'Reyansh Malhotra', avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=150', status: 'PRESENT', remarks: '-' },
-    { studentId: '65a000000000000000000012', rollNo: '6A012', studentName: 'Ishaan Verma', avatar: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=150', status: 'PRESENT', remarks: '-' },
-    { studentId: '65a000000000000000000013', rollNo: '6A013', studentName: 'Tanvi Deshmukh', avatar: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=150', status: 'PRESENT', remarks: '-' },
-    { studentId: '65a000000000000000000014', rollNo: '6A014', studentName: 'Kabir Das', avatar: 'https://images.unsplash.com/photo-1513956589380-bad6acb9b9d4?w=150', status: 'PRESENT', remarks: '-' },
-    { studentId: '65a000000000000000000015', rollNo: '6A015', studentName: 'Zoya Khan', avatar: 'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=150', status: 'LATE', remarks: 'Traffic delay' },
-    { studentId: '65a000000000000000000016', rollNo: '6A016', studentName: 'Aryan Bhatia', avatar: 'https://images.unsplash.com/photo-1501196354995-cbb51c65aaea?w=150', status: 'PRESENT', remarks: '-' },
-    { studentId: '65a000000000000000000017', rollNo: '6A017', studentName: 'Pooja Hegde', avatar: 'https://images.unsplash.com/photo-1548142813-c348350df52b?w=150', status: 'PRESENT', remarks: '-' },
-    { studentId: '65a000000000000000000018', rollNo: '6A018', studentName: 'Manish Reddy', avatar: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=150', status: 'PRESENT', remarks: '-' },
-    { studentId: '65a000000000000000000019', rollNo: '6A019', studentName: 'Sanya Mirza', avatar: 'https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=150', status: 'PRESENT', remarks: '-' },
-    { studentId: '65a000000000000000000020', rollNo: '6A020', studentName: 'Kunal Kapoor', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150', status: 'ABSENT', remarks: 'Family function' },
-    { studentId: '65a000000000000000000021', rollNo: '6A021', studentName: 'Riya Sen', avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150', status: 'PRESENT', remarks: '-' },
-    { studentId: '65a000000000000000000022', rollNo: '6A022', studentName: 'Harsh Vardhan', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150', status: 'PRESENT', remarks: '-' },
-    { studentId: '65a000000000000000000023', rollNo: '6A023', studentName: 'Simran Kaur', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150', status: 'PRESENT', remarks: '-' },
-    { studentId: '65a000000000000000000024', rollNo: '6A024', studentName: 'Varun Dhawan', avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=150', status: 'PRESENT', remarks: '-' },
-    { studentId: '65a000000000000000000025', rollNo: '6A025', studentName: 'Tara Sutaria', avatar: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=150', status: 'PRESENT', remarks: '-' },
-    { studentId: '65a000000000000000000026', rollNo: '6A026', studentName: 'Nikhil Advani', avatar: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=150', status: 'PRESENT', remarks: '-' },
-    { studentId: '65a000000000000000000027', rollNo: '6A027', studentName: 'Ananya Birla', avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150', status: 'PRESENT', remarks: '-' },
-    { studentId: '65a000000000000000000028', rollNo: '6A028', studentName: 'Devansh Pandey', avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150', status: 'PRESENT', remarks: '-' },
-    { studentId: '65a000000000000000000029', rollNo: '6A029', studentName: 'Kriti Sanon', avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150', status: 'PRESENT', remarks: '-' },
-    { studentId: '65a000000000000000000030', rollNo: '6A030', studentName: 'Lakshya Sen', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150', status: 'PRESENT', remarks: '-' },
-    { studentId: '65a000000000000000000031', rollNo: '6A031', studentName: 'Parineeti Chopra', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150', status: 'PRESENT', remarks: '-' },
-    { studentId: '65a000000000000000000032', rollNo: '6A032', studentName: 'Siddharth Roy', avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150', status: 'PRESENT', remarks: '-' },
-];
-
 export default function AttendanceManagementPage() {
     // Selection state matching the reference screenshot
     const [selectedClassId, setSelectedClassId] = useState('class-6');
@@ -105,11 +69,11 @@ export default function AttendanceManagementPage() {
     const [saveRegister, { isLoading: isSaving }] = useSaveAttendanceRegisterMutation();
 
     // Local mutable state of student records
-    const [records, setRecords] = useState(INITIAL_STUDENT_ROSTER);
+    const [records, setRecords] = useState([]);
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
     useEffect(() => {
-        if (registerData?.data?.records && registerData.data.records.length > 0) {
+        if (registerData?.data?.records) {
             setRecords(registerData.data.records);
             setHasUnsavedChanges(false);
         }

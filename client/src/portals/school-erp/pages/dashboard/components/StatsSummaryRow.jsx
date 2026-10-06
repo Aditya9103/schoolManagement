@@ -10,20 +10,20 @@ import {
 } from 'lucide-react';
 
 export default function StatsSummaryRow({ stats }) {
-    const totalStudents = stats?.totalStudents?.toLocaleString('en-IN') || '1,248';
-    const totalTeachers = stats?.totalTeachers?.toLocaleString('en-IN') || '86';
-    const totalStaff = stats?.totalStaff?.toLocaleString('en-IN') || '12';
-    const feesCollected = stats?.feesCollectedFormatted || '₹ 24,80,000';
-    const attendanceRate = stats?.attendanceRate || '92%';
-    const parentSatisfaction = stats?.parentSatisfaction || '4.8';
-    const parentReviews = stats?.parentReviewCount || 320;
+    const totalStudents = stats?.totalStudents !== undefined ? stats.totalStudents.toLocaleString('en-IN') : '0';
+    const totalTeachers = stats?.totalTeachers !== undefined ? stats.totalTeachers.toLocaleString('en-IN') : '0';
+    const totalStaff = stats?.totalStaff !== undefined ? stats.totalStaff.toLocaleString('en-IN') : '0';
+    const feesCollected = stats?.feesCollectedFormatted || '₹ 0';
+    const attendanceRate = stats?.attendanceRate || '0%';
+    const parentSatisfaction = stats?.parentSatisfaction || '5.0';
+    const parentReviews = stats?.parentReviewCount || 0;
 
     const cards = [
         {
             title: 'Total Students',
             value: totalStudents,
-            change: '+8%',
-            subtext: '+92 this month',
+            change: 'Live',
+            subtext: 'Active enrolled',
             Icon: GraduationCap,
             iconBg: 'bg-blue-100 text-blue-600',
             trendBg: 'text-emerald-700 bg-emerald-50 border-emerald-200',
@@ -31,8 +31,8 @@ export default function StatsSummaryRow({ stats }) {
         {
             title: 'Total Teachers',
             value: totalTeachers,
-            change: '+4%',
-            subtext: '+3 this month',
+            change: 'Live',
+            subtext: 'Faculty members',
             Icon: UserCheck,
             iconBg: 'bg-emerald-100 text-emerald-600',
             trendBg: 'text-emerald-700 bg-emerald-50 border-emerald-200',
@@ -40,8 +40,8 @@ export default function StatsSummaryRow({ stats }) {
         {
             title: 'Total Staff',
             value: totalStaff,
-            change: '+2%',
-            subtext: '+1 this month',
+            change: 'Live',
+            subtext: 'Operations staff',
             Icon: Users,
             iconBg: 'bg-purple-100 text-purple-600',
             trendBg: 'text-emerald-700 bg-emerald-50 border-emerald-200',
@@ -49,8 +49,8 @@ export default function StatsSummaryRow({ stats }) {
         {
             title: 'Fees Collected',
             value: feesCollected,
-            change: '+12%',
-            subtext: 'This Month',
+            change: 'Live',
+            subtext: 'Academic Year',
             Icon: Coins,
             iconBg: 'bg-amber-100 text-amber-600',
             trendBg: 'text-emerald-700 bg-emerald-50 border-emerald-200',
@@ -58,8 +58,8 @@ export default function StatsSummaryRow({ stats }) {
         {
             title: 'Attendance Rate',
             value: attendanceRate,
-            change: '+3%',
-            subtext: 'This Week',
+            change: 'Live',
+            subtext: 'Weekly Average',
             Icon: CalendarCheck,
             iconBg: 'bg-rose-100 text-rose-600',
             trendBg: 'text-emerald-700 bg-emerald-50 border-emerald-200',
@@ -68,7 +68,7 @@ export default function StatsSummaryRow({ stats }) {
             title: 'Parent Satisfaction',
             value: parentSatisfaction,
             change: null,
-            subtext: `From ${parentReviews} reviews`,
+            subtext: parentReviews > 0 ? `From ${parentReviews} reviews` : 'No reviews yet',
             Icon: Star,
             iconBg: 'bg-blue-50 text-blue-600',
             trendBg: null,

@@ -76,6 +76,10 @@ export const authenticate = async (req, res, next) => {
         }
 
         // Attach user context to request for downstream middleware/controllers
+        if (payload.sub) {
+            payload._id = payload.sub;
+            payload.id = payload.sub;
+        }
         req.user = payload;
 
         return next();
@@ -97,6 +101,10 @@ export const optionalAuth = async (req, res, next) => {
         const token = extractToken(req);
         if (token) {
             const payload = await verifyAccessToken(token);
+            if (payload.sub) {
+                payload._id = payload.sub;
+                payload.id = payload.sub;
+            }
             req.user = payload;
         }
     } catch {

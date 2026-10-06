@@ -30,6 +30,36 @@ router.post(
     ctrl.createTeacher
 );
 
+router.patch(
+    '/teachers/:id',
+    requireDynamicPermission('teachers_directory', 'edit'),
+    ctrl.updateTeacher
+);
+
+router.delete(
+    '/teachers/:id',
+    requireDynamicPermission('teachers_directory', 'delete'),
+    ctrl.deleteTeacher
+);
+
+router.post(
+    '/teachers/:id/assign-class',
+    requireDynamicPermission('teachers_directory', 'edit'),
+    ctrl.assignTeacherClass
+);
+
+router.post(
+    '/teachers/:id/assign-subject',
+    requireDynamicPermission('teachers_directory', 'edit'),
+    ctrl.assignTeacherSubject
+);
+
+router.delete(
+    '/teachers/:id/assignments/:assignmentId',
+    requireDynamicPermission('teachers_directory', 'edit'),
+    ctrl.removeTeacherAssignment
+);
+
 // ── STAFF ──────────────────────────────────────────────────────────────────
 router.get(
     '/staff',
@@ -78,6 +108,11 @@ router.get(
     requireDynamicPermission('parents_directory', 'view'),
     resolveDataScope('parents_directory'),
     ctrl.getParentsList
+);
+
+router.get(
+    '/parents/my-children',
+    ctrl.getMyChildren
 );
 
 router.get(

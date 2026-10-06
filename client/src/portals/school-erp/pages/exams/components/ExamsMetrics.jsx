@@ -11,16 +11,18 @@ import {
 
 export default function ExamsMetrics({ summary = {} }) {
     const {
-        totalExams = 12,
-        totalExamsDelta = '+20%',
-        studentsAppeared = 1248,
-        studentsAppearedDelta = '+8%',
-        averagePassRate = 92.4,
-        averagePassRateDelta = '+5%',
-        topPerformers = 186,
-        topPerformersDelta = '+12%',
-        pendingResults = 3,
+        totalExams = 0,
+        totalExamsDelta = 'Live',
+        studentsAppeared = 0,
+        studentsAppearedDelta = 'Live',
+        averagePassRate = 0,
+        averagePassRateDelta = 'Live',
+        topPerformers = 0,
+        topPerformersDelta = 'Live',
+        pendingResults = 0,
     } = summary;
+
+    const makeSpark = (val) => val > 0 ? [Math.round(val * 0.7), Math.round(val * 0.8), Math.round(val * 0.85), Math.round(val * 0.9), Math.round(val * 0.95), val] : [0, 0, 0, 0, 0, 0];
 
     const cards = [
         {
@@ -31,7 +33,7 @@ export default function ExamsMetrics({ summary = {} }) {
             iconBg: 'bg-blue-50 text-blue-600 border border-blue-100',
             Icon: FileText,
             sparkColor: '#3b82f6',
-            sparkline: [8, 9, 10, 10, 11, 11, 12],
+            sparkline: makeSpark(totalExams),
         },
         {
             title: 'Students Appeared',
@@ -41,7 +43,7 @@ export default function ExamsMetrics({ summary = {} }) {
             iconBg: 'bg-emerald-50 text-emerald-600 border border-emerald-100',
             Icon: Users,
             sparkColor: '#10b981',
-            sparkline: [950, 1020, 1100, 1150, 1190, 1220, 1248],
+            sparkline: makeSpark(studentsAppeared),
         },
         {
             title: 'Average Pass Rate',
@@ -51,7 +53,7 @@ export default function ExamsMetrics({ summary = {} }) {
             iconBg: 'bg-purple-50 text-purple-600 border border-purple-100',
             Icon: Award,
             sparkColor: '#a855f7',
-            sparkline: [85, 87, 88, 89, 90, 91.5, 92.4],
+            sparkline: makeSpark(averagePassRate),
         },
         {
             title: 'Top Performers',
@@ -61,7 +63,7 @@ export default function ExamsMetrics({ summary = {} }) {
             iconBg: 'bg-amber-50 text-amber-600 border border-amber-100',
             Icon: Trophy,
             sparkColor: '#f59e0b',
-            sparkline: [120, 135, 142, 155, 168, 175, 186],
+            sparkline: makeSpark(topPerformers),
         },
         {
             title: 'Pending Results',

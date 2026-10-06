@@ -3,6 +3,7 @@ import ExamResult from './examResult.model.js';
 import QuestionPaper from './questionPaper.model.js';
 import ClassModel from '../academic/class.model.js';
 import Student from '../student/student.model.js';
+import { eventBus, DOMAIN_EVENTS } from '../../events/eventBus.js';
 
 // Default Sample Exams matching Image 2
 const SAMPLE_EXAMS = [
@@ -341,59 +342,71 @@ const ensureSeedExams = async (schoolId) => {
 };
 
 export const getOverviewStats = async (schoolId) => {
-    await ensureSeedExams(schoolId);
-
     const totalExams = await Exam.countDocuments({ schoolId });
     const ongoingExams = await Exam.countDocuments({ schoolId, status: 'ONGOING' });
     const upcomingExams = await Exam.countDocuments({ schoolId, status: 'UPCOMING' });
     const completedExams = await Exam.countDocuments({ schoolId, status: 'COMPLETED' });
 
+    const totalStudentsEnrolled = await Student.countDocuments({ schoolId, status: 'ACTIVE' });
+
+    const results = await ExamResult.find({ schoolId });
+    const totalResults = results.length;
+    const passedResults = results.filter((r) => r.resultStatus === 'PASS').length;
+    const passRate = totalResults > 0 ? Number(((passedResults / totalResults) * 100).toFixed(1)) : 0;
+    const distinctions = results.filter((r) => (r.percentage || 0) >= 75).length;
+    const firstDivs = results.filter((r) => (r.percentage || 0) >= 60 && (r.percentage || 0) < 75).length;
+    const secondDivs = results.filter((r) => (r.percentage || 0) >= 50 && (r.percentage || 0) < 60).length;
+
+    const upcomingDocs = await Exam.find({
+        schoolId,
+        status: { $in: ['UPCOMING', 'ONGOING'] },
+    })
+        .sort({ startDate: 1 })
+        .limit(5);
+
+    const upcomingExamsList = upcomingDocs.map((ex) => {
+        const d = new Date(ex.startDate);
+        return {
+            id: ex._id,
+            title: ex.name,
+            date: d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }).toUpperCase(),
+            month: d.toLocaleDateString('en-GB', { month: 'short' }).toUpperCase(),
+            day: d.toLocaleDateString('en-GB', { day: '2-digit' }),
+            classes: ex.classesApplicable || 'All Classes',
+            type: ex.type || 'Assessment',
+            status: ex.status,
+        };
+    });
+
     return {
-        totalExams: totalExams || 12,
-        totalExamsDelta: '+20%',
-        studentsAppeared: 1248,
-        studentsAppearedDelta: '+8%',
-        averagePassRate: 92.4,
-        averagePassRateDelta: '+5%',
-        topPerformers: 186,
-        topPerformersDelta: '+12%',
-        pendingResults: 3,
+        totalExams,
+        totalExamsDelta: 'Live',
+        studentsAppeared: totalResults || totalStudentsEnrolled,
+        studentsAppearedDelta: 'Live',
+        averagePassRate: passRate,
+        averagePassRateDelta: 'Live',
+        topPerformers: distinctions,
+        topPerformersDelta: 'Live',
+        pendingResults: ongoingExams,
         examCounts: {
-            all: totalExams || 12,
-            ongoing: ongoingExams || 2,
-            upcoming: upcomingExams || 3,
-            completed: completedExams || 7,
+            all: totalExams,
+            ongoing: ongoingExams,
+            upcoming: upcomingExams,
+            completed: completedExams,
         },
         resultStatistics: {
-            term: 'Term 1 (Half Yearly)',
-            passRate: 92.4,
-            passRateDelta: '+5%',
-            distinction: 33,
-            distinctionDelta: '+6%',
-            firstDivision: 41,
-            firstDivisionDelta: '+3%',
-            secondDivision: 20,
-            secondDivisionDelta: '-2%',
+            term: 'Current Term',
+            passRate,
+            passRateDelta: 'Live',
+            distinction: totalResults > 0 ? Math.round((distinctions / totalResults) * 100) : 0,
+            distinctionDelta: 'Live',
+            firstDivision: totalResults > 0 ? Math.round((firstDivs / totalResults) * 100) : 0,
+            firstDivisionDelta: 'Live',
+            secondDivision: totalResults > 0 ? Math.round((secondDivs / totalResults) * 100) : 0,
+            secondDivisionDelta: 'Live',
         },
-        classPerformance: [
-            { class: 'Class 1', passRate: 98, firstDiv: 45, distinction: 38 },
-            { class: 'Class 2', passRate: 96, firstDiv: 44, distinction: 36 },
-            { class: 'Class 3', passRate: 95, firstDiv: 42, distinction: 34 },
-            { class: 'Class 4', passRate: 94, firstDiv: 40, distinction: 32 },
-            { class: 'Class 5', passRate: 93, firstDiv: 39, distinction: 30 },
-            { class: 'Class 6', passRate: 91, firstDiv: 41, distinction: 28 },
-            { class: 'Class 7', passRate: 92, firstDiv: 43, distinction: 31 },
-            { class: 'Class 8', passRate: 90, firstDiv: 38, distinction: 29 },
-            { class: 'Class 9', passRate: 88, firstDiv: 36, distinction: 27 },
-            { class: 'Class 10', passRate: 92, firstDiv: 42, distinction: 35 },
-            { class: 'Class 11', passRate: 86, firstDiv: 35, distinction: 25 },
-            { class: 'Class 12', passRate: 94, firstDiv: 44, distinction: 38 },
-        ],
-        upcomingExams: [
-            { id: '1', title: 'Unit Test 2', date: 'AUG 15', month: 'AUG', day: '15', classes: 'Classes 1 - 12', type: 'Periodic Test', status: 'Ongoing' },
-            { id: '2', title: 'Pre-Board Exam', date: 'SEP 10', month: 'SEP', day: '10', classes: 'Classes 9 - 12', type: 'Board Pattern', status: 'Upcoming' },
-            { id: '3', title: 'Annual Examination', date: 'MAR 15', month: 'MAR', day: '15', classes: 'Classes 1 - 12', type: 'Term Exam', status: 'Upcoming' },
-        ],
+        classPerformance: [],
+        upcomingExams: upcomingExamsList,
     };
 };
 
@@ -442,7 +455,17 @@ export const createExam = async (schoolId, payload) => {
         schoolId,
         ...payload,
     });
-    return exam.save();
+    const saved = await exam.save();
+
+    // Broadcast domain event for realtime cache synchronization
+    eventBus.publish(DOMAIN_EVENTS.EXAM_SCHEDULED, {
+        schoolId,
+        examId: saved._id,
+        name: saved.name,
+        startDate: saved.startDate,
+    });
+
+    return saved;
 };
 
 export const updateExam = async (schoolId, id, payload) => {
@@ -522,6 +545,19 @@ export const saveMarks = async (schoolId, payload) => {
             { upsert: true, new: true }
         );
     }
+
+    // Broadcast domain events for realtime cache synchronization
+    eventBus.publish(DOMAIN_EVENTS.MARKS_ENTERED, {
+        schoolId,
+        examId,
+        count: studentMarks.length,
+    });
+    eventBus.publish(DOMAIN_EVENTS.MARKS_SUBMITTED, {
+        schoolId,
+        examId,
+        count: studentMarks.length,
+    });
+
     return { success: true, count: studentMarks.length };
 };
 

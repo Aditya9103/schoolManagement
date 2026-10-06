@@ -35,10 +35,10 @@ export default function StaffManagementPage() {
 
     const staffList = resData?.data?.staff || [];
     const kpis = resData?.data?.kpis || {
-        totalStaff: 36,
-        activeStaff: 34,
-        departmentsCount: 6,
-        onLeaveStaff: 2
+        totalStaff: 0,
+        activeStaff: 0,
+        departmentsCount: 0,
+        onLeaveStaff: 0
     };
     const pagination = resData?.data?.pagination || { page: 1, totalPages: 1, total: staffList.length };
 
@@ -50,6 +50,46 @@ export default function StaffManagementPage() {
         setSelectedRole('All');
         setActiveTab('ALL');
         setPage(1);
+    };
+
+    const handleExportCSV = () => {
+        if (!staffList.length) {
+            alert('No staff records available to export.');
+            return;
+        }
+
+        const headers = [
+            'Name',
+            'Employee ID',
+            'Department',
+            'Role / Designation',
+            'Status',
+            'Phone',
+            'Email',
+            'Qualification',
+            'Joining Date'
+        ];
+
+        const rows = staffList.map((s) => [
+            `"${s.name || ''}"`,
+            `"${s.employeeId || ''}"`,
+            `"${s.department || ''}"`,
+            `"${s.role || ''}"`,
+            `"${s.status || ''}"`,
+            `"${s.phone || ''}"`,
+            `"${s.email || ''}"`,
+            `"${s.qualification || ''}"`,
+            `"${s.joiningDate ? new Date(s.joiningDate).toLocaleDateString() : ''}"`
+        ]);
+
+        const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement('a');
+        link.setAttribute('href', encodedUri);
+        link.setAttribute('download', `Staff_Directory_${new Date().toISOString().split('T')[0]}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
     };
 
     const statCards = [
@@ -127,6 +167,16 @@ export default function StaffManagementPage() {
                     >
                         <ClipboardList size={16} className="text-blue-600" />
                         <span>Attendance Register</span>
+                    </button>
+
+                    <button
+                        type="button"
+                        onClick={handleExportCSV}
+                        className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 bg-white hover:bg-slate-50 text-slate-800 text-xs font-bold rounded-xl transition-all border border-slate-300 shadow-2xs hover:border-slate-400 active:scale-95 cursor-pointer"
+                        title="Export staff directory to CSV"
+                    >
+                        <Download size={15} className="text-slate-600" />
+                        <span className="hidden sm:inline">Export CSV</span>
                     </button>
 
                     <button

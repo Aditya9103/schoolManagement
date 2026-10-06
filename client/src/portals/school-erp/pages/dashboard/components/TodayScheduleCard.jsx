@@ -4,14 +4,7 @@ import { Users, BookOpen, Clock, Presentation } from 'lucide-react';
 
 export default function TodayScheduleCard({ schedule, data }) {
     const rawItems = data || schedule;
-    const items = rawItems && rawItems.length > 0 ? rawItems : [
-        { time: '08:00 AM', title: 'Assembly', location: 'School Ground', isLive: false, icon: Users, color: 'text-teal-600 bg-teal-50' },
-        { time: '08:30 AM', title: 'Class 6A – Mathematics', location: 'Room 201', isLive: true, icon: BookOpen, color: 'text-emerald-600 bg-emerald-50' },
-        { time: '09:30 AM', title: 'Class 8B – Science', location: 'Room 305', isLive: true, icon: Presentation, color: 'text-rose-600 bg-rose-50' },
-        { time: '10:30 AM', title: 'Staff Meeting', location: 'Conference Hall', isLive: false, icon: Users, color: 'text-purple-600 bg-purple-50' },
-        { time: '01:00 PM', title: 'Class 10A – English', location: 'Room 402', isLive: false, icon: BookOpen, color: 'text-amber-600 bg-amber-50' },
-        { time: '02:30 PM', title: 'Class 12 – Physics', location: 'Room 501', isLive: false, icon: Presentation, color: 'text-rose-600 bg-rose-50' },
-    ];
+    const items = Array.isArray(rawItems) ? rawItems : [];
 
     return (
         <div className="bg-white rounded-2xl border border-slate-100 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] p-4 sm:p-5 hover:shadow-md transition-shadow flex flex-col justify-between h-full">
@@ -28,7 +21,13 @@ export default function TodayScheduleCard({ schedule, data }) {
             </div>
 
             <div className="space-y-2 flex-1 overflow-y-auto">
-                {items.slice(0, 6).map((slot, index) => {
+                {items.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-6 text-center text-slate-400">
+                        <Clock className="w-5 h-5 mb-1.5 text-slate-300" />
+                        <span className="text-xs">No periods scheduled today</span>
+                    </div>
+                ) : (
+                    items.slice(0, 6).map((slot, index) => {
                     const IconComponent = slot.icon || BookOpen;
                     return (
                         <div
@@ -64,7 +63,7 @@ export default function TodayScheduleCard({ schedule, data }) {
                             )}
                         </div>
                     );
-                })}
+                }))}
             </div>
         </div>
     );

@@ -29,11 +29,11 @@ export default function HomeworkFilterToolbar({
     onStatusChange,
     onResetFilters,
     counts = {
-        all: 124,
-        active: 28,
-        upcoming: 16,
-        past: 80,
-        drafts: 5,
+        all: 0,
+        active: 0,
+        upcoming: 0,
+        past: 0,
+        drafts: 0,
     },
 }) {
     const tabs = [

@@ -13,8 +13,15 @@ export const classApi = createApi({
         'ClassReports',
         'ClassSettings',
         'ClassStudents',
+        'TeacherDashboard',
     ],
     endpoints: (builder) => ({
+        // Teacher Dashboard Summary
+        getTeacherDashboard: builder.query({
+            query: () => ({ url: '/classes/teacher-dashboard', method: 'GET' }),
+            providesTags: ['TeacherDashboard', 'Classes', 'Timetables'],
+        }),
+
         // Overview Stats
         getOverviewStats: builder.query({
             query: () => ({ url: '/classes/overview-stats', method: 'GET' }),
@@ -176,6 +183,7 @@ export const classApi = createApi({
 });
 
 export const {
+    useGetTeacherDashboardQuery,
     useGetOverviewStatsQuery,
     useGetClassesQuery,
     useGetClassDetailsQuery,

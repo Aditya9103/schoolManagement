@@ -12,22 +12,13 @@ import {
 export default function FeeCollectionCard({ data, loading }) {
     const [period, setPeriod] = useState('This Month');
 
-    const defaultMonthlyData = [
-        { month: 'Apr', collected: 21, pending: 2.8 },
-        { month: 'May', collected: 23, pending: 2.5 },
-        { month: 'Jun', collected: 19.5, pending: 3.2 },
-        { month: 'Jul', collected: 22, pending: 2.1 },
-        { month: 'Aug', collected: 24.2, pending: 1.9 },
-        { month: 'Sep', collected: 24.8, pending: 2.1 }
-    ];
-
-    const chartData = data?.monthly || defaultMonthlyData;
+    const chartData = data?.monthly || [];
     const summary = data?.summary || {
-        collected: '₹ 24.8 L',
-        pending: '₹ 2.1 L',
-        totalExpected: '₹ 26.9 L',
-        collectedGrowth: '+ 12%',
-        pendingChange: '- 5%'
+        collected: '₹ 0',
+        pending: '₹ 0',
+        totalExpected: '₹ 0',
+        collectedGrowth: '0%',
+        pendingChange: '0%'
     };
 
     return (
@@ -60,7 +51,7 @@ export default function FeeCollectionCard({ data, loading }) {
                     <div className="flex items-center justify-between">
                         <span className="text-[10px] font-bold text-emerald-800">Collected</span>
                         <span className="text-[9px] font-bold text-emerald-700">
-                            ↑ {summary.collectedGrowth || '12%'}
+                            {summary.collectedGrowth || 'Live'}
                         </span>
                     </div>
                     <div className="text-sm sm:text-base font-extrabold text-slate-900 mt-0.5 whitespace-nowrap">
@@ -72,7 +63,7 @@ export default function FeeCollectionCard({ data, loading }) {
                     <div className="flex items-center justify-between">
                         <span className="text-[10px] font-bold text-rose-800">Pending</span>
                         <span className="text-[9px] font-bold text-rose-700">
-                            ↓ {summary.pendingChange || '5%'}
+                            {summary.pendingChange || 'Live'}
                         </span>
                     </div>
                     <div className="text-sm sm:text-base font-extrabold text-slate-900 mt-0.5 whitespace-nowrap">
@@ -101,62 +92,68 @@ export default function FeeCollectionCard({ data, loading }) {
             </div>
 
             {/* Dual Bar Chart */}
-            <div className="h-40 sm:h-44 w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                    <BarChart
-                        data={chartData}
-                        margin={{ top: 5, right: 5, left: -25, bottom: 0 }}
-                        barGap={3}
-                    >
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                        <XAxis
-                            dataKey="month"
-                            axisLine={false}
-                            tickLine={false}
-                            tick={{ fill: '#64748b', fontSize: 10, fontWeight: 500 }}
-                        />
-                        <YAxis
-                            axisLine={false}
-                            tickLine={false}
-                            tick={{ fill: '#64748b', fontSize: 9 }}
-                            tickFormatter={(v) => `${v}L`}
-                            domain={[0, 30]}
-                            ticks={[0, 10, 20, 30]}
-                        />
-                        <Tooltip
-                            content={({ active, payload, label }) => {
-                                if (!active || !payload?.length) return null;
-                                return (
-                                    <div className="bg-slate-900/90 backdrop-blur-md text-white p-2 rounded-xl shadow-lg text-xs space-y-1 border border-slate-700">
-                                        <p className="font-bold text-slate-200">{label}</p>
-                                        <div className="flex items-center gap-2">
-                                            <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
-                                            <span className="text-slate-300">Collected:</span>
-                                            <span className="font-semibold text-white">₹{payload[0]?.value} L</span>
+            <div className="h-40 sm:h-44 w-full flex items-center justify-center">
+                {chartData.length === 0 ? (
+                    <div className="text-center text-slate-400 text-xs">
+                        No fee collection records for this period
+                    </div>
+                ) : (
+                    <ResponsiveContainer width="100%" height="100%">
+                        <BarChart
+                            data={chartData}
+                            margin={{ top: 5, right: 5, left: -25, bottom: 0 }}
+                            barGap={3}
+                        >
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                            <XAxis
+                                dataKey="month"
+                                axisLine={false}
+                                tickLine={false}
+                                tick={{ fill: '#64748b', fontSize: 10, fontWeight: 500 }}
+                            />
+                            <YAxis
+                                axisLine={false}
+                                tickLine={false}
+                                tick={{ fill: '#64748b', fontSize: 9 }}
+                                tickFormatter={(v) => `${v}L`}
+                                domain={[0, 30]}
+                                ticks={[0, 10, 20, 30]}
+                            />
+                            <Tooltip
+                                content={({ active, payload, label }) => {
+                                    if (!active || !payload?.length) return null;
+                                    return (
+                                        <div className="bg-slate-900/90 backdrop-blur-md text-white p-2 rounded-xl shadow-lg text-xs space-y-1 border border-slate-700">
+                                            <p className="font-bold text-slate-200">{label}</p>
+                                            <div className="flex items-center gap-2">
+                                                <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+                                                <span className="text-slate-300">Collected:</span>
+                                                <span className="font-semibold text-white">₹{payload[0]?.value} L</span>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <span className="w-1.5 h-1.5 rounded-full bg-sky-300"></span>
+                                                <span className="text-slate-300">Pending:</span>
+                                                <span className="font-semibold text-white">₹{payload[1]?.value} L</span>
+                                            </div>
                                         </div>
-                                        <div className="flex items-center gap-2">
-                                            <span className="w-1.5 h-1.5 rounded-full bg-sky-300"></span>
-                                            <span className="text-slate-300">Pending:</span>
-                                            <span className="font-semibold text-white">₹{payload[1]?.value} L</span>
-                                        </div>
-                                    </div>
-                                );
-                            }}
-                        />
-                        <Bar
-                            dataKey="collected"
-                            fill="#2563eb"
-                            radius={[3, 3, 0, 0]}
-                            maxBarSize={14}
-                        />
-                        <Bar
-                            dataKey="pending"
-                            fill="#bae6fd"
-                            radius={[3, 3, 0, 0]}
-                            maxBarSize={14}
-                        />
-                    </BarChart>
-                </ResponsiveContainer>
+                                    );
+                                }}
+                            />
+                            <Bar
+                                dataKey="collected"
+                                fill="#2563eb"
+                                radius={[3, 3, 0, 0]}
+                                maxBarSize={14}
+                            />
+                            <Bar
+                                dataKey="pending"
+                                fill="#bae6fd"
+                                radius={[3, 3, 0, 0]}
+                                maxBarSize={14}
+                            />
+                        </BarChart>
+                    </ResponsiveContainer>
+                )}
             </div>
         </div>
     );

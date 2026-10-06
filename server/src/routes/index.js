@@ -12,6 +12,8 @@ import attendanceRoutes from '../modules/attendance/attendance.routes.js';
 import homeworkRoutes   from '../modules/homework/homework.routes.js';
 import examRoutes       from '../modules/exam/exam.routes.js';
 import peopleRoutes     from '../modules/people/people.routes.js';
+import noticeRoutes     from '../modules/notice/notice.routes.js';
+import feeRoutes        from '../modules/fee/fee.routes.js';
 
 /**
  * routes/index.js — Central API router for PrimeSchoolOs (v1).
@@ -55,11 +57,11 @@ router.use('/students', studentRoutes);
 router.use('/roles', roleRoutes);
 router.use('/attendance', attendanceRoutes);
 router.use('/people', peopleRoutes);
-// router.use('/fees',       feeRoutes);
+router.use('/fees',       feeRoutes);
 router.use('/homework',   homeworkRoutes);
 router.use('/exams',      examRoutes);
 // router.use('/transport',  transportRoutes);
-// router.use('/notices',    noticeRoutes);
+router.use('/notices',    noticeRoutes);
 // router.use('/timetable',  timetableRoutes);
 // router.use('/library',    libraryRoutes);
 // router.use('/leave',      leaveRoutes);

@@ -54,11 +54,12 @@ export default function StaffAttendancePage() {
 
     const records = resData?.data?.records || [];
     const summary = resData?.data?.summary || {
-        present: 32,
-        absent: 2,
-        late: 2,
-        onLeave: 2,
-        totalEmployees: 36
+        present: records.filter(r => r.status === 'PRESENT').length,
+        absent: records.filter(r => r.status === 'ABSENT').length,
+        late: records.filter(r => r.status === 'LATE').length,
+        onLeave: records.filter(r => r.status === 'ON_LEAVE').length,
+        notMarked: records.filter(r => r.status === 'NOT_MARKED').length,
+        totalEmployees: records.length
     };
 
     const filteredRecords = useMemo(() => {
@@ -106,12 +107,12 @@ export default function StaffAttendancePage() {
 
     const attendanceRate = summary.totalEmployees > 0
         ? Math.round((summary.present / summary.totalEmployees) * 100)
-        : 92;
+        : 0;
 
     const statCards = [
         {
             title: 'Total Personnel',
-            value: summary.totalEmployees || 36,
+            value: summary.totalEmployees ?? 0,
             change: null,
             subtext: 'Registered campus staff',
             Icon: Users,
@@ -120,7 +121,7 @@ export default function StaffAttendancePage() {
         },
         {
             title: 'Present Today',
-            value: summary.present || 32,
+            value: summary.present ?? 0,
             change: `${attendanceRate}%`,
             subtext: 'On duty & checked in',
             Icon: CheckCircle2,
@@ -129,7 +130,7 @@ export default function StaffAttendancePage() {
         },
         {
             title: 'Late Entries',
-            value: summary.late || 2,
+            value: summary.late ?? 0,
             change: null,
             subtext: 'Checked in post 09:00 AM',
             Icon: Clock,
@@ -140,7 +141,7 @@ export default function StaffAttendancePage() {
             title: 'Absent / On Leave',
             value: (summary.absent || 0) + (summary.onLeave || 0),
             change: null,
-            subtext: `${summary.onLeave || 2} Leave • ${summary.absent || 0} Absent`,
+            subtext: `${summary.onLeave ?? 0} Leave • ${summary.absent ?? 0} Absent`,
             Icon: AlertCircle,
             iconBg: 'bg-rose-100 text-rose-600',
             trendBg: null,

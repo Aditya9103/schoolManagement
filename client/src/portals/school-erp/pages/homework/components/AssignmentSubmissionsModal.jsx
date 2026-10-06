@@ -14,19 +14,6 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
-const DEFAULT_SAMPLE_SUBMISSIONS = [
-    { studentName: 'Aarav Sharma', rollNo: '6A001', avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150', status: 'SUBMITTED', submittedAt: '2026-04-20T16:30:00Z', marksObtained: 18, grade: 'A', feedback: 'Great work! Keep it up. Solve Q6 with more detailed steps next time.', isLate: false, files: [{ title: 'math_assignment_aarav.pdf', size: '2.1 MB' }] },
-    { studentName: 'Ananya Verma', rollNo: '6A002', avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150', status: 'SUBMITTED', submittedAt: '2026-04-20T17:15:00Z', marksObtained: 19, grade: 'A+', feedback: 'Excellent step-by-step working and presentation.', isLate: false, files: [{ title: 'math_assignment_ananya.pdf', size: '1.8 MB' }] },
-    { studentName: 'Rohan Patel', rollNo: '6A003', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150', status: 'SUBMITTED', submittedAt: '2026-04-21T11:20:00Z', marksObtained: 16, grade: 'B+', feedback: 'Good effort, but check question 4 calculation again.', isLate: false, files: [{ title: 'rohan_exercise1.pdf', size: '3.0 MB' }] },
-    { studentName: 'Sneha Gupta', rollNo: '6A004', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150', status: 'PENDING', submittedAt: null, marksObtained: null, grade: null, feedback: '', isLate: false, files: [] },
-    { studentName: 'Vihaan Singh', rollNo: '6A005', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150', status: 'LATE', submittedAt: '2026-04-22T08:15:00Z', marksObtained: 14, grade: 'B', feedback: 'Submitted past deadline. Penalty applied.', isLate: true, files: [{ title: 'vihaan_maths.pdf', size: '1.5 MB' }] },
-    { studentName: 'Kavya Joshi', rollNo: '6A006', avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150', status: 'SUBMITTED', submittedAt: '2026-04-20T18:40:00Z', marksObtained: 19, grade: 'A', feedback: 'Very neat drawings and clear reasoning.', isLate: false, files: [{ title: 'kavya_homework.pdf', size: '2.4 MB' }] },
-    { studentName: 'Aditya Kumar', rollNo: '6A007', avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150', status: 'SUBMITTED', submittedAt: '2026-04-21T09:10:00Z', marksObtained: 17, grade: 'B+', feedback: 'Well done.', isLate: false, files: [{ title: 'aditya_solution.pdf', size: '2.0 MB' }] },
-    { studentName: 'Meera Iyer', rollNo: '6A008', avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150', status: 'SUBMITTED', submittedAt: '2026-04-21T10:05:00Z', marksObtained: 20, grade: 'A+', feedback: 'Full marks! Flawless solution.', isLate: false, files: [{ title: 'meera_maths_flawless.pdf', size: '2.8 MB' }] },
-    { studentName: 'Arjun Nair', rollNo: '6A009', avatar: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=150', status: 'PENDING', submittedAt: null, marksObtained: null, grade: null, feedback: '', isLate: false, files: [] },
-    { studentName: 'Diya Sharma', rollNo: '6A010', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150', status: 'PENDING', submittedAt: null, marksObtained: null, grade: null, feedback: 'On medical leave', isLate: false, files: [] },
-];
-
 export default function AssignmentSubmissionsModal({
     isOpen,
     onClose,
@@ -43,19 +30,19 @@ export default function AssignmentSubmissionsModal({
     const safeSubmissions = useMemo(() => {
         if (Array.isArray(submissions) && submissions.length > 0) return submissions;
         if (Array.isArray(submissions?.submissions) && submissions.submissions.length > 0) return submissions.submissions;
-        return DEFAULT_SAMPLE_SUBMISSIONS;
+        return [];
     }, [submissions]);
 
-    const totalStudents = metrics?.totalStudents ?? (safeSubmissions.length || 32);
+    const totalStudents = metrics?.totalStudents ?? safeSubmissions.length;
     const submittedCount =
         metrics?.submittedCount ??
-        (safeSubmissions.filter((s) => s.status === 'SUBMITTED' || s.status === 'GRADED').length || 28);
+        safeSubmissions.filter((s) => s.status === 'SUBMITTED' || s.status === 'GRADED').length;
     const pendingCount =
         metrics?.pendingCount ??
-        (safeSubmissions.filter((s) => s.status === 'PENDING').length || 4);
+        safeSubmissions.filter((s) => s.status === 'PENDING').length;
     const lateCount =
         metrics?.lateCount ??
-        (safeSubmissions.filter((s) => s.status === 'LATE' || s.isLate).length || 2);
+        safeSubmissions.filter((s) => s.status === 'LATE' || s.isLate).length;
 
     const filtered = safeSubmissions.filter((s) => {
         const matchesSearch =
@@ -185,7 +172,14 @@ export default function AssignmentSubmissionsModal({
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 text-xs">
-                            {filtered.map((item, idx) => (
+                            {filtered.length === 0 ? (
+                                <tr>
+                                    <td colSpan="8" className="py-12 text-center text-slate-400 font-medium">
+                                        No student submissions found.
+                                    </td>
+                                </tr>
+                            ) : (
+                                filtered.map((item, idx) => (
                                 <tr key={item._id || idx} className="hover:bg-slate-50/70 transition-colors">
                                     <td className="py-3 px-3.5 text-slate-400 font-semibold text-center">{idx + 1}</td>
                                     <td className="py-3 px-3.5">
@@ -248,7 +242,7 @@ export default function AssignmentSubmissionsModal({
                                         </button>
                                     </td>
                                 </tr>
-                            ))}
+                            )))}
                         </tbody>
                     </table>
                 </div>

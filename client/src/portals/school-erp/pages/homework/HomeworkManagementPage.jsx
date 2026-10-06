@@ -353,11 +353,11 @@ export default function HomeworkManagementPage() {
                 }}
                 onResetFilters={handleResetFilters}
                 counts={{
-                    all: statsData.totalAssignments || 124,
-                    active: statsData.activeAssignments || 28,
-                    upcoming: statsData.upcomingAssignments || 16,
-                    past: statsData.pastAssignments || 80,
-                    drafts: statsData.drafts || 5,
+                    all: statsData.totalAssignments ?? 0,
+                    active: statsData.activeAssignments ?? 0,
+                    upcoming: statsData.upcomingAssignments ?? 0,
+                    past: statsData.pastAssignments ?? 0,
+                    drafts: statsData.drafts ?? 0,
                 }}
             />
 

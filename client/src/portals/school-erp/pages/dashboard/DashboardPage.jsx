@@ -18,9 +18,16 @@ import QuickActionsGrid from './components/QuickActionsGrid';
 import ClassPerformanceChart from './components/ClassPerformanceChart';
 import TopPerformersCard from './components/TopPerformersCard';
 import AnnouncementsCard from './components/AnnouncementsCard';
+import TeacherDashboardView from './TeacherDashboardView';
 
 export default function DashboardPage() {
     const { user } = useSelector((state) => state.auth);
+
+    // Dynamic Role Projection: Render Teacher Command Center for TEACHER role
+    if (user?.role === 'TEACHER') {
+        return <TeacherDashboardView />;
+    }
+
     const { data: schoolRes, isLoading: schoolLoading } = useGetMySchoolQuery();
     const { data: statsRes, isLoading: statsLoading } = useGetSchoolDashboardStatsQuery();
 

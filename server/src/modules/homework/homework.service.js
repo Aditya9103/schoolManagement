@@ -4,6 +4,7 @@ import Student from '../student/student.model.js';
 import ClassModel from '../academic/class.model.js';
 import SubjectModel from '../academic/subject.model.js';
 import ApiError from '../../utils/ApiError.js';
+import { eventBus, DOMAIN_EVENTS } from '../../events/eventBus.js';
 
 // Realistic sample cohort for assignments matching screenshot Image 2
 const SAMPLE_ASSIGNMENTS = [
@@ -298,6 +299,10 @@ export const createAssignment = async (schoolId, userId, payload) => {
         minute: '2-digit',
     });
 
+    const studentCount = classId
+        ? await Student.countDocuments({ schoolId, classId, status: 'ACTIVE' }).catch(() => 0)
+        : 0;
+
     const newAssignment = await Assignment.create({
         schoolId,
         title,
@@ -318,14 +323,23 @@ export const createAssignment = async (schoolId, userId, payload) => {
         notifyStudents,
         status: status.toUpperCase(),
         statistics: {
-            totalStudents: 32,
+            totalStudents: studentCount,
             submittedCount: 0,
-            pendingCount: 32,
+            pendingCount: studentCount,
             lateCount: 0,
             gradedCount: 0,
             submissionRate: 0,
             averageScore: 0,
         },
+    });
+
+    // Broadcast domain event for realtime cache synchronization
+    eventBus.publish(DOMAIN_EVENTS.HOMEWORK_PUBLISHED, {
+        schoolId,
+        assignmentId: newAssignment._id,
+        classId: newAssignment.classId,
+        subjectName: newAssignment.subjectName,
+        title: newAssignment.title,
     });
 
     return newAssignment;
@@ -359,107 +373,95 @@ export const deleteAssignment = async (schoolId, id) => {
 };
 
 export const getOverviewStats = async (schoolId) => {
-    await ensureSeedAssignments(schoolId);
+    const totalAssignments = await Assignment.countDocuments({ schoolId });
+    const activeAssignments = await Assignment.countDocuments({ schoolId, status: 'ACTIVE' });
+    const pendingSubmissions = await Submission.countDocuments({ schoolId, status: { $in: ['PENDING', 'SUBMITTED'] } });
+    const gradedAssignments = await Submission.countDocuments({ schoolId, status: 'GRADED' });
 
-    const totalCount = await Assignment.countDocuments({ schoolId });
-    const baseline = totalCount > 0 ? totalCount : 124;
+    // Aggregate real submission rate
+    const totalSubmissions = await Submission.countDocuments({ schoolId });
+    const avgRate = totalAssignments > 0
+        ? Number(((totalSubmissions / (totalAssignments * 30 || 1)) * 100).toFixed(0))
+        : 0;
+
+    // Type distribution from actual assignments in DB
+    const typeAggregation = await Assignment.aggregate([
+        { $match: { schoolId } },
+        { $group: { _id: '$type', count: { $sum: 1 } } },
+    ]);
+    const totalTypes = typeAggregation.reduce((acc, curr) => acc + curr.count, 0) || 1;
+    const colorMap = {
+        HOMEWORK: '#3b82f6',
+        ASSIGNMENT: '#a855f7',
+        PROJECT: '#f59e0b',
+        PRACTICAL: '#ec4899',
+        OTHER: '#64748b',
+    };
+    const typeDistribution = typeAggregation.map((t) => ({
+        name: t._id ? (t._id.charAt(0) + t._id.slice(1).toLowerCase()) : 'Other',
+        count: t.count,
+        percentage: Number(((t.count / totalTypes) * 100).toFixed(1)),
+        color: colorMap[t._id] || '#64748b',
+    }));
+
+    // Real upcoming deadlines
+    const upcomingDeadlinesDocs = await Assignment.find({
+        schoolId,
+        deadline: { $gte: new Date() },
+    })
+        .sort({ deadline: 1 })
+        .limit(5);
+
+    const upcomingDeadlines = upcomingDeadlinesDocs.map((item) => {
+        const d = new Date(item.deadline);
+        return {
+            id: item._id,
+            day: d.toLocaleDateString('en-GB', { day: '2-digit' }),
+            month: d.toLocaleDateString('en-GB', { month: 'short' }).toUpperCase(),
+            title: item.title,
+            classSubject: `${item.className || 'Class'} | ${item.subjectName || 'Subject'}`,
+            time: d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+        };
+    });
+
+    // Real recent activities from submissions
+    const recentSubmissions = await Submission.find({ schoolId })
+        .sort({ updatedAt: -1 })
+        .limit(5);
+
+    const recentActivities = recentSubmissions.map((sub) => ({
+        id: `sub-${sub._id}`,
+        type: sub.status === 'GRADED' ? 'GRADED' : 'SUBMISSION',
+        studentName: sub.studentName || 'Student',
+        action: sub.status === 'GRADED' ? 'graded' : 'submitted',
+        subjectAssignment: sub.rollNo ? `Roll No. ${sub.rollNo}` : 'Submission',
+        timeAgo: 'Recently',
+        avatar: null,
+        badgeColor: sub.status === 'GRADED'
+            ? 'bg-purple-50 text-purple-700 border-purple-200'
+            : 'bg-emerald-50 text-emerald-700 border-emerald-200',
+    }));
 
     return {
         summary: {
-            totalAssignments: baseline,
-            totalAssignmentsDelta: '+12%',
-            activeAssignments: 28,
-            activeAssignmentsDelta: '+8%',
-            pendingSubmissions: 256,
-            pendingSubmissionsDelta: '-5%',
-            gradedAssignments: 96,
-            gradedAssignmentsDelta: '+18%',
-            averageSubmissionRate: 86,
-            averageSubmissionRateDelta: '+6%',
+            totalAssignments,
+            totalAssignmentsDelta: 'Live',
+            activeAssignments,
+            activeAssignmentsDelta: 'Live',
+            pendingSubmissions,
+            pendingSubmissionsDelta: 'Live',
+            gradedAssignments,
+            gradedAssignmentsDelta: 'Live',
+            averageSubmissionRate: avgRate,
+            averageSubmissionRateDelta: 'Live',
         },
-        typeDistribution: [
-            { name: 'Homework', count: 48, percentage: 39, color: '#3b82f6' },
-            { name: 'Assignment', count: 32, percentage: 26, color: '#a855f7' },
-            { name: 'Project', count: 18, percentage: 15, color: '#f59e0b' },
-            { name: 'Practical', count: 14, percentage: 11, color: '#ec4899' },
-            { name: 'Other', count: 12, percentage: 9, color: '#64748b' },
+        typeDistribution: typeDistribution.length > 0 ? typeDistribution : [
+            { name: 'Homework', count: 0, percentage: 0, color: '#3b82f6' },
+            { name: 'Assignment', count: 0, percentage: 0, color: '#a855f7' },
+            { name: 'Project', count: 0, percentage: 0, color: '#f59e0b' },
         ],
-        upcomingDeadlines: [
-            {
-                id: 'dl-1',
-                day: '21',
-                month: 'APR',
-                title: 'Chapter 1 - Exercise Questions',
-                classSubject: 'Class 6 - A | Mathematics',
-                time: '11:59 PM',
-            },
-            {
-                id: 'dl-2',
-                day: '22',
-                month: 'APR',
-                title: 'Essay on Save Trees',
-                classSubject: 'Class 7 - B | English',
-                time: '11:59 PM',
-            },
-            {
-                id: 'dl-3',
-                day: '25',
-                month: 'APR',
-                title: 'Science Project - Water Cycle',
-                classSubject: 'Class 8 - A | Science',
-                time: '11:59 PM',
-            },
-            {
-                id: 'dl-4',
-                day: '27',
-                month: 'APR',
-                title: 'Computer Practical - MS Word',
-                classSubject: 'Class 8 - B | Computer',
-                time: '11:59 PM',
-            },
-        ],
-        recentActivities: [
-            {
-                id: 'act-1',
-                type: 'SUBMISSION',
-                studentName: 'Riya Sharma',
-                action: 'submitted',
-                subjectAssignment: 'Science Project - Water Cycle',
-                timeAgo: '2 hours ago',
-                avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150',
-                badgeColor: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-            },
-            {
-                id: 'act-2',
-                type: 'SUBMISSION',
-                studentName: 'Aarav Patel',
-                action: 'submitted',
-                subjectAssignment: 'Chapter 1 - Exercise Questions',
-                timeAgo: '3 hours ago',
-                avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150',
-                badgeColor: 'bg-blue-50 text-blue-700 border-blue-200',
-            },
-            {
-                id: 'act-3',
-                type: 'GRADED',
-                studentName: 'Teacher',
-                action: 'graded',
-                subjectAssignment: 'Essay on Save Trees',
-                timeAgo: '5 hours ago',
-                avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150',
-                badgeColor: 'bg-purple-50 text-purple-700 border-purple-200',
-            },
-            {
-                id: 'act-4',
-                type: 'CREATED',
-                studentName: 'New assignment created',
-                action: '',
-                subjectAssignment: 'Environmental Awareness',
-                timeAgo: '1 day ago',
-                avatar: null,
-                badgeColor: 'bg-amber-50 text-amber-700 border-amber-200',
-            },
-        ],
+        upcomingDeadlines,
+        recentActivities,
     };
 };
 
@@ -537,6 +539,16 @@ export const gradeSubmission = async (schoolId, submissionId, payload, teacherId
     );
 
     if (!updated) throw ApiError.notFound('Submission not found');
+
+    // Emit live domain event for Socket.IO broadcast and RTK Query invalidation
+    eventBus.publish(DOMAIN_EVENTS.HOMEWORK_EVALUATED, {
+        schoolId,
+        submissionId: updated._id,
+        assignmentId: updated.assignmentId,
+        studentId: updated.studentId,
+        marksObtained: updated.marksObtained,
+    });
+
     return updated;
 };
 
@@ -559,44 +571,72 @@ export const submitStudentHomework = async (schoolId, assignmentId, studentId, s
         { upsert: true, new: true, setDefaultsOnInsert: true }
     );
 
+    // Emit live domain event for Socket.IO broadcast and RTK Query invalidation
+    eventBus.publish(DOMAIN_EVENTS.HOMEWORK_SUBMITTED, {
+        schoolId,
+        assignmentId,
+        studentId,
+        studentName,
+    });
+
     return submission;
 };
 
 export const getAnalytics = async (schoolId, query = {}) => {
+    const totalAssignments = await Assignment.countDocuments({ schoolId });
+    const submittedCount = await Submission.countDocuments({ schoolId, status: { $in: ['SUBMITTED', 'GRADED'] } });
+    const pendingCount = await Submission.countDocuments({ schoolId, status: 'PENDING' });
+    const lateCount = await Submission.countDocuments({ schoolId, status: 'LATE' });
+    const gradedCount = await Submission.countDocuments({ schoolId, status: 'GRADED' });
+
+    const totalSubmissions = submittedCount + pendingCount + lateCount || 1;
+    const submissionRate = totalAssignments > 0
+        ? Number(((submittedCount / (totalAssignments * 30 || 1)) * 100).toFixed(0))
+        : 0;
+
+    // Real subject averages from graded submissions
+    const subjectAveragesAgg = await Submission.aggregate([
+        { $match: { schoolId, status: 'GRADED', marksObtained: { $exists: true } } },
+        {
+            $lookup: {
+                from: 'assignments',
+                localField: 'assignmentId',
+                foreignField: '_id',
+                as: 'assignment',
+            },
+        },
+        { $unwind: '$assignment' },
+        {
+            $group: {
+                _id: '$assignment.subjectName',
+                avgScore: { $avg: '$marksObtained' },
+            },
+        },
+    ]);
+
+    const subjectAverages = subjectAveragesAgg.map((s) => ({
+        subject: s._id || 'Subject',
+        score: Math.round(s.avgScore || 0),
+    }));
+
     return {
         overview: {
-            totalAssignments: 124,
-            submissionRate: 86,
-            averageScore: 78,
-            onTimeRate: 92,
+            totalAssignments,
+            submissionRate: Math.min(100, submissionRate),
+            averageScore: subjectAverages.length > 0 ? Math.round(subjectAverages.reduce((a, b) => a + b.score, 0) / subjectAverages.length) : 0,
+            onTimeRate: totalSubmissions > 0 ? Math.round(((submittedCount / totalSubmissions) * 100)) : 100,
         },
         submissionStatusBreakdown: [
-            { name: 'Submitted', value: 104, percentage: 84, color: '#10b981' },
-            { name: 'Pending', value: 14, percentage: 11, color: '#ef4444' },
-            { name: 'Late', value: 6, percentage: 5, color: '#f59e0b' },
+            { name: 'Submitted', value: submittedCount, percentage: Number(((submittedCount / totalSubmissions) * 100).toFixed(1)), color: '#10b981' },
+            { name: 'Pending', value: pendingCount, percentage: Number(((pendingCount / totalSubmissions) * 100).toFixed(1)), color: '#ef4444' },
+            { name: 'Late', value: lateCount, percentage: Number(((lateCount / totalSubmissions) * 100).toFixed(1)), color: '#f59e0b' },
         ],
-        subjectAverages: [
-            { subject: 'Maths', score: 88 },
-            { subject: 'English', score: 76 },
-            { subject: 'Science', score: 82 },
-            { subject: 'S. Science', score: 74 },
-            { subject: 'Arts', score: 91 },
-            { subject: 'Life Skills', score: 85 },
+        subjectAverages: subjectAverages.length > 0 ? subjectAverages : [
+            { subject: 'Mathematics', score: 0 },
+            { subject: 'Science', score: 0 },
+            { subject: 'English', score: 0 },
         ],
-        classPerformance: [
-            { className: 'Class 6', score: 86 },
-            { className: 'Class 7', score: 79 },
-            { className: 'Class 8', score: 82 },
-            { className: 'Class 9', score: 74 },
-            { className: 'Class 10', score: 80 },
-        ],
-        submissionTrends: [
-            { date: '16 Apr', submitted: 85, pending: 15, late: 4 },
-            { date: '17 Apr', submitted: 90, pending: 12, late: 5 },
-            { date: '18 Apr', submitted: 78, pending: 20, late: 8 },
-            { date: '19 Apr', submitted: 94, pending: 8, late: 2 },
-            { date: '20 Apr', submitted: 88, pending: 10, late: 6 },
-            { date: '21 Apr', submitted: 96, pending: 5, late: 3 },
-        ],
+        classPerformance: [],
+        submissionTrends: [],
     };
 };

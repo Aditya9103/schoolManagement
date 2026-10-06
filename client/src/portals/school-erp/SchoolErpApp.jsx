@@ -24,6 +24,8 @@ import StaffDetailPage from './pages/staff/StaffDetailPage';
 import StaffAttendancePage from './pages/staff/StaffAttendancePage';
 import ParentsPage from './pages/parents/ParentsPage';
 import ParentDetailPage from './pages/parents/ParentDetailPage';
+import NoticesPage from './pages/notices/NoticesPage';
+import FeesPage from './pages/fees/FeesPage';
 import ComingSoonPage from '../../components/common/ComingSoonPage';
 
 const SCHOOL_ERP_NAV = [
@@ -64,6 +66,8 @@ export default function SchoolErpApp() {
                 <Route path="timetable" element={<Navigate to="/school/classes/timetable" replace />} />
                 <Route path="timetable/*" element={<Navigate to="/school/classes/timetable" replace />} />
                 <Route path="attendance/*" element={<AttendanceManagementPage />} />
+                <Route path="fees" element={<FeesPage />} />
+                <Route path="fees/*" element={<FeesPage />} />
                 <Route path="homework" element={<HomeworkManagementPage />} />
                 <Route path="homework/*" element={<HomeworkManagementPage />} />
                 <Route path="assignments" element={<HomeworkManagementPage />} />
@@ -75,9 +79,23 @@ export default function SchoolErpApp() {
                 <Route path="teachers/:id" element={<TeacherDetailPage />} />
                 <Route path="staff" element={<StaffManagementPage />} />
                 <Route path="staff/attendance" element={<StaffAttendancePage />} />
+                <Route path="my-attendance" element={<Navigate to="/school/staff/attendance" replace />} />
                 <Route path="staff/:id" element={<StaffDetailPage />} />
                 <Route path="parents" element={<ParentsPage />} />
                 <Route path="parents/:id" element={<ParentDetailPage />} />
+
+                {/* ── NOTICES & CIRCULARS ── */}
+                <Route path="notices" element={<NoticesPage />} />
+
+                {/* ── TEACHER WORKFLOW & PROFILE ROUTES ── */}
+                <Route path="profile" element={<TeacherDetailPage />} />
+                <Route path="lesson-planning" element={<ComingSoonPage title="Curriculum & Lesson Planning" />} />
+                <Route path="study-materials" element={<ComingSoonPage title="Study Materials & Notes" />} />
+                <Route path="question-bank" element={<ComingSoonPage title="Question Bank & Repositories" />} />
+                <Route path="performance" element={<ComingSoonPage title="Student Performance Insights" />} />
+                <Route path="messages" element={<ComingSoonPage title="Communication & Parent Messaging" />} />
+                <Route path="leave" element={<ComingSoonPage title="Leave Management & Balances" />} />
+                <Route path="documents" element={<ComingSoonPage title="My Documents & Certificates" />} />
 
                 <Route path="roles" element={<RolesAndPermissionsPage />} />
                 <Route path="*" element={<ComingSoonPage />} />

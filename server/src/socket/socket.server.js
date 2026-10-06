@@ -75,6 +75,19 @@ export const initSocket = (httpServer) => {
         });
     });
 
+    // ── Wire Domain Event Bus to Socket.IO Broadcasting ─────────────────────────
+    import('../events/eventBus.js').then(({ eventBus }) => {
+        eventBus.on('*', (envelope) => {
+            if (!io) return;
+            const { type, schoolId, data } = envelope;
+            if (schoolId) {
+                io.to(ROOMS.SCHOOL(schoolId.toString())).emit(type, data);
+            }
+        });
+    }).catch(err => {
+        logger.error('[Socket] Failed to bind eventBus to socket broadcast:', err);
+    });
+
     logger.info('[Socket] PrimeSchoolOs Socket.IO server initialized');
     return io;
 };

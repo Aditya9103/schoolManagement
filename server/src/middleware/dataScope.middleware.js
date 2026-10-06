@@ -16,6 +16,7 @@
 
 import TeacherAssignment from '../modules/people/models/teacherAssignment.model.js';
 import SubjectAssignment from '../modules/people/models/subjectAssignment.model.js';
+import TeachingAssignment from '../modules/people/models/teachingAssignment.model.js';
 import ParentProfile from '../modules/people/models/parentProfile.model.js';
 import ParentStudentRelation from '../modules/people/models/parentStudentRelation.model.js';
 import Student from '../modules/student/student.model.js';
@@ -32,7 +33,7 @@ export const resolveDataScope = (featureKey) => async (req, res, next) => {
         return next(ApiError.forbidden('No school associated with this account'));
     }
 
-    // 1. Universal access for Super Admin & School Admin
+    // 1. Universal access for Super Admin & School Admin / Principal
     if (req.user.role === ROLES.SUPER_ADMIN || req.user.role === 'SCHOOL_ADMIN' || req.user.role === 'PRINCIPAL') {
         req.dataScope = { type: 'ALL_SCHOOL', schoolId };
         req.scopeFilter = { schoolId };
@@ -45,10 +46,14 @@ export const resolveDataScope = (featureKey) => async (req, res, next) => {
 
     if (!scope) {
         if (req.user.role === 'TEACHER') {
-            if (featureKey === 'academic_attendance' || featureKey === 'homework_assignments') {
-                scope = 'ASSIGNED_CLASSES';
-            } else if (featureKey === 'exams_results') {
+            if (featureKey === 'academic_attendance') {
+                scope = 'ASSIGNED_ATTENDANCE_PERIODS';
+            } else if (featureKey === 'homework_assignments') {
                 scope = 'ASSIGNED_SUBJECTS';
+            } else if (featureKey === 'exams_results') {
+                scope = 'ASSIGNED_EXAM_SUBJECTS';
+            } else if (featureKey === 'academic_timetable') {
+                scope = 'OWN_TIMETABLE';
             } else if (featureKey === 'parents_directory') {
                 scope = 'PARENTS_OF_ASSIGNED_STUDENTS';
             } else if (featureKey === 'teachers_directory') {
@@ -57,7 +62,9 @@ export const resolveDataScope = (featureKey) => async (req, res, next) => {
                 scope = 'OWN_RECORDS';
             }
         } else if (req.user.role === 'PARENT') {
-            scope = 'PARENT_CHILDREN';
+            scope = 'MY_CHILDREN';
+        } else if (req.user.role === 'STUDENT') {
+            scope = 'OWN_RECORDS';
         } else if (['TRANSPORT_MANAGER', 'HOSTEL_WARDEN'].includes(req.user.role)) {
             scope = 'MY_DEPARTMENT';
         } else {
@@ -79,44 +86,86 @@ export const resolveDataScope = (featureKey) => async (req, res, next) => {
                 return next();
             }
 
-            case 'ASSIGNED_CLASSES': {
-                const classAssignments = await TeacherAssignment.find({
+            case 'OWN_TIMETABLE': {
+                req.scopeFilter = {
+                    schoolId,
+                    teacherId: req.user._id,
+                };
+                return next();
+            }
+
+            case 'ASSIGNED_CLASSES':
+            case 'ASSIGNED_ATTENDANCE_PERIODS': {
+                // Check canonical TeachingAssignment first, fallback to TeacherAssignment
+                let assignments = await TeachingAssignment.find({
                     schoolId,
                     teacherId: req.user._id,
                     status: 'ACTIVE',
-                }).select('classId sectionId');
+                }).select('sectionId assignmentType');
 
-                const sectionIds = classAssignments.map((a) => a.sectionId);
+                let sectionIds = assignments.map((a) => a.sectionId);
+
+                if (!sectionIds.length) {
+                    const legacy = await TeacherAssignment.find({
+                        schoolId,
+                        teacherId: req.user._id,
+                        status: 'ACTIVE',
+                    }).select('sectionId');
+                    sectionIds = legacy.map((a) => a.sectionId);
+                }
+
                 req.dataScope.sectionIds = sectionIds;
                 req.scopeFilter = { schoolId, sectionId: { $in: sectionIds } };
                 return next();
             }
 
-            case 'ASSIGNED_SUBJECTS': {
-                const subjectAssignments = await SubjectAssignment.find({
+            case 'ASSIGNED_SUBJECTS':
+            case 'ASSIGNED_EXAM_SUBJECTS': {
+                // Check canonical TeachingAssignment first, fallback to SubjectAssignment
+                let subjectAssignments = await TeachingAssignment.find({
                     schoolId,
                     teacherId: req.user._id,
+                    subjectId: { $ne: null },
                     status: 'ACTIVE',
-                }).select('classId sectionId subjectId');
+                }).select('sectionId subjectId');
+
+                if (!subjectAssignments.length) {
+                    subjectAssignments = await SubjectAssignment.find({
+                        schoolId,
+                        teacherId: req.user._id,
+                        status: 'ACTIVE',
+                    }).select('sectionId subjectId');
+                }
 
                 req.dataScope.subjectAssignments = subjectAssignments;
+                const orClauses = subjectAssignments.map((s) => ({
+                    sectionId: s.sectionId,
+                    subjectId: s.subjectId,
+                }));
+
                 req.scopeFilter = {
                     schoolId,
-                    $or: subjectAssignments.map((s) => ({
-                        sectionId: s.sectionId,
-                        subjectId: s.subjectId,
-                    })),
+                    ...(orClauses.length ? { $or: orClauses } : { _id: null }),
                 };
                 return next();
             }
 
             case 'PARENTS_OF_ASSIGNED_STUDENTS': {
-                const classAssignments = await TeacherAssignment.find({
+                let assignments = await TeachingAssignment.find({
                     schoolId,
                     teacherId: req.user._id,
                     status: 'ACTIVE',
                 }).select('sectionId');
-                const sectionIds = classAssignments.map((a) => a.sectionId);
+
+                let sectionIds = assignments.map((a) => a.sectionId);
+                if (!sectionIds.length) {
+                    const legacy = await TeacherAssignment.find({
+                        schoolId,
+                        teacherId: req.user._id,
+                        status: 'ACTIVE',
+                    }).select('sectionId');
+                    sectionIds = legacy.map((a) => a.sectionId);
+                }
 
                 const enrolledStudents = await Student.find({
                     schoolId,
@@ -136,6 +185,7 @@ export const resolveDataScope = (featureKey) => async (req, res, next) => {
                 return next();
             }
 
+            case 'MY_CHILDREN':
             case 'PARENT_CHILDREN': {
                 const parentProfile = await ParentProfile.findOne({ schoolId, userId: req.user._id });
                 if (!parentProfile) {
@@ -162,13 +212,15 @@ export const resolveDataScope = (featureKey) => async (req, res, next) => {
                         { employeeId: req.user._id },
                         { staffId: req.user._id },
                         { markedBy: req.user._id },
+                        { teacherId: req.user._id },
+                        { studentId: req.user._id },
                     ],
                 };
                 return next();
             }
         }
     } catch (err) {
-        return next(err);
+        next(err);
     }
 };
 

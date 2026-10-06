@@ -33,6 +33,49 @@ export const peopleApi = createApi({
             invalidatesTags: ['Teachers'],
         }),
 
+        updateTeacher: builder.mutation({
+            query: ({ id, ...data }) => ({
+                url: `/people/teachers/${id}`,
+                method: 'PATCH',
+                data,
+            }),
+            invalidatesTags: (result, error, { id }) => ['Teachers', { type: 'Teachers', id }],
+        }),
+
+        deleteTeacher: builder.mutation({
+            query: (id) => ({
+                url: `/people/teachers/${id}`,
+                method: 'DELETE',
+            }),
+            invalidatesTags: ['Teachers'],
+        }),
+
+        assignTeacherClass: builder.mutation({
+            query: ({ id, ...data }) => ({
+                url: `/people/teachers/${id}/assign-class`,
+                method: 'POST',
+                data,
+            }),
+            invalidatesTags: (result, error, { id }) => ['Teachers', { type: 'Teachers', id }],
+        }),
+
+        assignTeacherSubject: builder.mutation({
+            query: ({ id, ...data }) => ({
+                url: `/people/teachers/${id}/assign-subject`,
+                method: 'POST',
+                data,
+            }),
+            invalidatesTags: (result, error, { id }) => ['Teachers', { type: 'Teachers', id }],
+        }),
+
+        removeTeacherAssignment: builder.mutation({
+            query: ({ teacherId, assignmentId, type }) => ({
+                url: `/people/teachers/${teacherId}/assignments/${assignmentId}?type=${type || 'class'}`,
+                method: 'DELETE',
+            }),
+            invalidatesTags: (result, error, { teacherId }) => ['Teachers', { type: 'Teachers', id: teacherId }],
+        }),
+
         // ── STAFF ──────────────────────────────────────────────────────────
         getStaffList: builder.query({
             query: (params) => ({
@@ -113,6 +156,14 @@ export const peopleApi = createApi({
             }),
             invalidatesTags: ['Parents'],
         }),
+
+        getMyChildren: builder.query({
+            query: () => ({
+                url: '/people/parents/my-children',
+                method: 'GET',
+            }),
+            providesTags: ['Parents'],
+        }),
     }),
 });
 
@@ -120,6 +171,11 @@ export const {
     useGetTeachersQuery,
     useGetTeacherByIdQuery,
     useCreateTeacherMutation,
+    useUpdateTeacherMutation,
+    useDeleteTeacherMutation,
+    useAssignTeacherClassMutation,
+    useAssignTeacherSubjectMutation,
+    useRemoveTeacherAssignmentMutation,
     useGetStaffListQuery,
     useGetStaffByIdQuery,
     useGetStaffPayrollQuery,
@@ -129,6 +185,7 @@ export const {
     useGetParentsQuery,
     useGetParentByIdQuery,
     useCreateParentMutation,
+    useGetMyChildrenQuery,
 } = peopleApi;
 
 export default peopleApi;

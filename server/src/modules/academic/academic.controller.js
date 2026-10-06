@@ -27,6 +27,17 @@ export const getOverviewStats = async (req, res, next) => {
     }
 };
 
+export const getTeacherDashboard = async (req, res, next) => {
+    try {
+        const schoolId = await resolveSchoolId(req);
+        const teacherId = req.user._id;
+        const data = await academicService.getTeacherDashboardData(schoolId, teacherId);
+        return res.status(200).json(ApiResponse.success(data, 'Teacher dashboard retrieved successfully'));
+    } catch (err) {
+        next(err);
+    }
+};
+
 export const getClasses = async (req, res, next) => {
     try {
         const schoolId = await resolveSchoolId(req);

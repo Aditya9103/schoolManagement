@@ -18,9 +18,9 @@ import {
 
 export default function ExamsTable({
     exams = [],
-    totalCount = 12,
+    totalCount = 0,
     currentPage = 1,
-    totalPages = 2,
+    totalPages = 1,
     rowsPerPage = 10,
     onPageChange,
     onRowsPerPageChange,

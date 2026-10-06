@@ -3,16 +3,16 @@ import { BookOpen, FileCheck, Clock, Award, TrendingUp, TrendingDown, CheckCircl
 
 export default function HomeworkMetrics({ summary = {} }) {
     const {
-        totalAssignments = 124,
-        totalAssignmentsDelta = '+12%',
-        activeAssignments = 28,
-        activeAssignmentsDelta = '+8%',
-        pendingSubmissions = 256,
-        pendingSubmissionsDelta = '-5%',
-        gradedAssignments = 96,
-        gradedAssignmentsDelta = '+18%',
-        averageSubmissionRate = 86,
-        averageSubmissionRateDelta = '+6%',
+        totalAssignments = 0,
+        totalAssignmentsDelta = '+0%',
+        activeAssignments = 0,
+        activeAssignmentsDelta = '+0%',
+        pendingSubmissions = 0,
+        pendingSubmissionsDelta = '+0%',
+        gradedAssignments = 0,
+        gradedAssignmentsDelta = '+0%',
+        averageSubmissionRate = 0,
+        averageSubmissionRateDelta = '+0%',
     } = summary;
 
     const cards = [

@@ -29,16 +29,16 @@ export default function SchoolAtAGlanceCard({ school, stats }) {
 
     const totalStudents = stats?.summary?.totalStudents != null
         ? stats.summary.totalStudents.toLocaleString()
-        : '1,248';
+        : '0';
 
     const facultyCount = stats?.summary?.totalTeachers != null
         ? stats.summary.totalTeachers
-        : 98;
+        : 0;
 
-    const estYear = school?.establishedYear || '2015';
+    const estYear = school?.establishedYear || (school?.createdAt ? new Date(school.createdAt).getFullYear() : 'N/A');
     const board = school?.board || 'CBSE';
-    const campusArea = school?.campusArea || '5 Acres';
-    const buses = school?.transportBuses || 12;
+    const campusArea = school?.campusArea || school?.address?.city || 'Campus';
+    const buses = school?.transportBuses || 0;
 
     const statChips = [
         { label: `Est. ${estYear}`, sub: 'Founded', icon: Building2, color: 'text-blue-600' },

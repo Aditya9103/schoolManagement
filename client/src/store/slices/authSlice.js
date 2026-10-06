@@ -18,6 +18,7 @@ export const ROLES = {
 
 export const SCHOOL_ERP_ROLES = [
     ROLES.SCHOOL_ADMIN,
+    ROLES.TEACHER,
     ROLES.ACCOUNTANT,
     ROLES.LIBRARIAN,
     ROLES.FRONT_OFFICE,
@@ -28,13 +29,13 @@ export const getPortalRoute = (role) => {
     switch (role) {
         case ROLES.SUPER_ADMIN:  return '/super-admin';
         case ROLES.SCHOOL_ADMIN: return '/school';
-        case ROLES.TEACHER:      return '/staff';
+        case ROLES.TEACHER:      return '/school';
         case ROLES.ACCOUNTANT:   return '/school';
         case ROLES.LIBRARIAN:    return '/school';
         case ROLES.FRONT_OFFICE: return '/school';
         case ROLES.DRIVER:       return '/driver';
-        case ROLES.PARENT:       return '/parent';
-        case ROLES.STUDENT:      return '/parent';
+        case ROLES.PARENT:       return '/portal';
+        case ROLES.STUDENT:      return '/portal';
         default:                 return '/auth/login';
     }
 };

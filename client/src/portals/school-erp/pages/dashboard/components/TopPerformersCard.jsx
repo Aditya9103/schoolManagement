@@ -1,47 +1,10 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-
-const DEFAULT_PERFORMERS = [
-    {
-        rank: 1,
-        name: 'Riya Sharma',
-        class: 'Class 10',
-        score: '98.2%',
-        avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop&crop=faces'
-    },
-    {
-        rank: 2,
-        name: 'Arjun Verma',
-        class: 'Class 9',
-        score: '97.6%',
-        avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=faces'
-    },
-    {
-        rank: 3,
-        name: 'Meera Iyer',
-        class: 'Class 12',
-        score: '97.1%',
-        avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop&crop=faces'
-    },
-    {
-        rank: 4,
-        name: 'Devansh Patel',
-        class: 'Class 8',
-        score: '96.8%',
-        avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop&crop=faces'
-    },
-    {
-        rank: 5,
-        name: 'Aditi Singh',
-        class: 'Class 11',
-        score: '96.4%',
-        avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop&crop=faces'
-    }
-];
+import { Award } from 'lucide-react';
 
 export default function TopPerformersCard({ data }) {
     const navigate = useNavigate();
-    const performers = data && data.length > 0 ? data : DEFAULT_PERFORMERS;
+    const performers = Array.isArray(data) ? data : [];
 
     const getRankBadge = (rank) => {
         if (rank === 1) return 'bg-amber-100 text-amber-800 font-bold border-amber-300';
@@ -65,40 +28,47 @@ export default function TopPerformersCard({ data }) {
             </div>
 
             <div className="space-y-1.5 flex-1">
-                {performers.slice(0, 5).map((p, idx) => {
-                    const rank = p.rank || idx + 1;
-                    return (
-                        <div
-                            key={p.name || idx}
-                            className="flex items-center justify-between p-1 hover:bg-slate-50/80 rounded-xl transition-colors"
-                        >
-                            <div className="flex items-center gap-2 min-w-0">
-                                <span className={`w-4.5 h-4.5 rounded-full flex items-center justify-center text-[9px] border shrink-0 ${getRankBadge(rank)}`}>
-                                    {rank}
-                                </span>
-                                <img
-                                    src={p.avatar}
-                                    alt={p.name}
-                                    className="w-7 h-7 rounded-full object-cover border border-slate-200 shrink-0"
-                                    onError={(e) => {
-                                        e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(p.name)}&background=e2e8f0&color=475569`;
-                                    }}
-                                />
-                                <div className="min-w-0">
-                                    <p className="text-xs font-bold text-slate-800 truncate leading-tight">
-                                        {p.name}
-                                    </p>
-                                    <p className="text-[10px] text-slate-600 font-semibold font-medium truncate leading-none mt-0.5">
-                                        {p.class}
-                                    </p>
+                {performers.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-6 text-center text-slate-400">
+                        <Award className="w-5 h-5 mb-1.5 text-slate-300" />
+                        <span className="text-xs">No exam results recorded yet</span>
+                    </div>
+                ) : (
+                    performers.slice(0, 5).map((p, idx) => {
+                        const rank = p.rank || idx + 1;
+                        return (
+                            <div
+                                key={p.name || idx}
+                                className="flex items-center justify-between p-1 hover:bg-slate-50/80 rounded-xl transition-colors"
+                            >
+                                <div className="flex items-center gap-2 min-w-0">
+                                    <span className={`w-4.5 h-4.5 rounded-full flex items-center justify-center text-[9px] border shrink-0 ${getRankBadge(rank)}`}>
+                                        {rank}
+                                    </span>
+                                    <img
+                                        src={p.avatar}
+                                        alt={p.name}
+                                        className="w-7 h-7 rounded-full object-cover border border-slate-200 shrink-0"
+                                        onError={(e) => {
+                                            e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(p.name)}&background=e2e8f0&color=475569`;
+                                        }}
+                                    />
+                                    <div className="min-w-0">
+                                        <p className="text-xs font-bold text-slate-800 truncate leading-tight">
+                                            {p.name}
+                                        </p>
+                                        <p className="text-[10px] text-slate-600 font-semibold font-medium truncate leading-none mt-0.5">
+                                            {p.class}
+                                        </p>
+                                    </div>
                                 </div>
+                                <span className="text-xs font-extrabold text-slate-900 tracking-tight ml-2 shrink-0">
+                                    {p.score}
+                                </span>
                             </div>
-                            <span className="text-xs font-extrabold text-slate-900 tracking-tight ml-2 shrink-0">
-                                {p.score}
-                            </span>
-                        </div>
-                    );
-                })}
+                        );
+                    })
+                )}
             </div>
         </div>
     );

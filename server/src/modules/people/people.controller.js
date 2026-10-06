@@ -33,6 +33,56 @@ export const createTeacher = async (req, res, next) => {
     }
 };
 
+export const updateTeacher = async (req, res, next) => {
+    try {
+        const schoolId = req.user.schoolId || req.user.societyId;
+        const result = await peopleService.updateTeacher(schoolId, req.params.id, req.body);
+        return res.status(200).json({ success: true, message: 'Teacher updated successfully', data: result });
+    } catch (err) {
+        next(err);
+    }
+};
+
+export const deleteTeacher = async (req, res, next) => {
+    try {
+        const schoolId = req.user.schoolId || req.user.societyId;
+        const result = await peopleService.deleteTeacher(schoolId, req.params.id);
+        return res.status(200).json({ success: true, message: 'Teacher deactivated successfully', data: result });
+    } catch (err) {
+        next(err);
+    }
+};
+
+export const assignTeacherClass = async (req, res, next) => {
+    try {
+        const schoolId = req.user.schoolId || req.user.societyId;
+        const result = await peopleService.assignTeacherClass(schoolId, req.params.id, req.body);
+        return res.status(200).json({ success: true, message: 'Class assigned successfully', data: result });
+    } catch (err) {
+        next(err);
+    }
+};
+
+export const assignTeacherSubject = async (req, res, next) => {
+    try {
+        const schoolId = req.user.schoolId || req.user.societyId;
+        const result = await peopleService.assignTeacherSubject(schoolId, req.params.id, req.body);
+        return res.status(200).json({ success: true, message: 'Subject assigned successfully', data: result });
+    } catch (err) {
+        next(err);
+    }
+};
+
+export const removeTeacherAssignment = async (req, res, next) => {
+    try {
+        const schoolId = req.user.schoolId || req.user.societyId;
+        const result = await peopleService.removeTeacherAssignment(schoolId, req.params.id, req.params.assignmentId, req.query.type);
+        return res.status(200).json({ success: true, message: 'Assignment removed successfully', data: result });
+    } catch (err) {
+        next(err);
+    }
+};
+
 // ── STAFF CONTROLLERS ──────────────────────────────────────────────────────
 
 export const getStaffList = async (req, res, next) => {
@@ -124,6 +174,16 @@ export const createParent = async (req, res, next) => {
         const schoolId = req.user.schoolId || req.user.societyId;
         const result = await peopleService.createParent(schoolId, req.body, req.user._id);
         return res.status(201).json({ success: true, message: 'Parent profile created successfully', data: result });
+    } catch (err) {
+        next(err);
+    }
+};
+
+export const getMyChildren = async (req, res, next) => {
+    try {
+        const schoolId = req.user.schoolId || req.user.societyId;
+        const result = await peopleService.getMyChildren(schoolId, req.user);
+        return res.status(200).json({ success: true, data: result });
     } catch (err) {
         next(err);
     }

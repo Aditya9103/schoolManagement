@@ -20,6 +20,7 @@ router.delete('/academic-years/:id', authorize(...manageRoles), ctrl.deleteAcade
 
 // ── 2. Top-level Named Routes (Must be before /:id) ───────────────────────────
 router.get('/overview-stats', ctrl.getOverviewStats);
+router.get('/teacher-dashboard', ctrl.getTeacherDashboard);
 
 // Teachers
 router.get('/teachers', ctrl.getClassTeachers);

@@ -12,8 +12,11 @@ import PersonDocument from './models/personDocument.model.js';
 import Class from '../academic/class.model.js';
 import Section from '../academic/section.model.js';
 import Subject from '../academic/subject.model.js';
-import Timetable from '../academic/timetable.model.js';
 import Student from '../student/student.model.js';
+import Attendance from '../attendance/attendance.model.js';
+import Assignment from '../homework/assignment.model.js';
+import Timetable from '../academic/timetable.model.js';
+import { eventBus, DOMAIN_EVENTS } from '../../events/eventBus.js';
 import ApiError from '../../utils/ApiError.js';
 
 // ============================================================================
@@ -449,11 +452,11 @@ export const getTeachers = async (schoolId, query = {}, scopeFilter = {}) => {
             totalPages: Math.ceil(total / parseInt(limit)) || 1
         },
         kpis: {
-            totalTeachers: totalTeachers || 48,
-            activeTeachers: activeTeachers || 46,
-            onLeaveTeachers: onLeaveTeachers || 2,
-            subjectExperts: Math.round(totalTeachers * 0.25) || 12,
-            departmentsCount: uniqueDepartments.size || 8
+            totalTeachers,
+            activeTeachers,
+            onLeaveTeachers,
+            subjectExperts: Math.round(totalTeachers * 0.25),
+            departmentsCount: uniqueDepartments.size
         }
     };
 };
@@ -548,7 +551,117 @@ export const createTeacher = async (schoolId, data, currentUserId) => {
         address: address || {}
     });
 
+    eventBus.emit(DOMAIN_EVENTS.TEACHER_UPDATED, { schoolId, teacherId: user._id });
     return { user, profile };
+};
+
+export const updateTeacher = async (schoolId, teacherId, updates) => {
+    const user = await User.findOne({ _id: teacherId, schoolId });
+    if (!user) throw ApiError.notFound('Teacher not found');
+
+    const profile = await TeacherProfile.findOne({ schoolId, userId: teacherId });
+
+    if (updates.firstName !== undefined) user.firstName = updates.firstName.trim();
+    if (updates.lastName !== undefined) user.lastName = updates.lastName.trim();
+    if (updates.phone !== undefined) user.phone = updates.phone;
+    if (updates.gender !== undefined) user.gender = updates.gender;
+    if (updates.profilePhotoUrl !== undefined) user.profilePhotoUrl = updates.profilePhotoUrl;
+    if (updates.status !== undefined) {
+        user.isActive = updates.status !== 'ON_LEAVE' && updates.status !== 'INACTIVE';
+    } else if (updates.isActive !== undefined) {
+        user.isActive = Boolean(updates.isActive);
+    }
+    await user.save();
+
+    if (profile) {
+        if (updates.employeeId !== undefined) profile.employeeId = updates.employeeId;
+        if (updates.department !== undefined) profile.department = updates.department;
+        if (updates.designation !== undefined) profile.designation = updates.designation;
+        if (updates.qualification !== undefined) profile.qualification = updates.qualification;
+        if (updates.experienceYears !== undefined) profile.experienceYears = Number(updates.experienceYears) || 0;
+        if (updates.specialization !== undefined) {
+            profile.specialization = Array.isArray(updates.specialization) ? updates.specialization : [updates.specialization];
+        }
+        if (updates.status !== undefined) profile.status = updates.status;
+        if (updates.joiningDate !== undefined) profile.joiningDate = updates.joiningDate;
+        if (updates.address) profile.address = { ...profile.address, ...updates.address };
+        await profile.save();
+    }
+
+    eventBus.emit(DOMAIN_EVENTS.TEACHER_UPDATED, { schoolId, teacherId });
+    return { user, profile };
+};
+
+export const deleteTeacher = async (schoolId, teacherId) => {
+    const user = await User.findOne({ _id: teacherId, schoolId });
+    if (!user) throw ApiError.notFound('Teacher not found');
+
+    user.isActive = false;
+    await user.save();
+
+    await TeacherProfile.updateOne({ schoolId, userId: teacherId }, { $set: { status: 'INACTIVE' } });
+    await TeacherAssignment.updateMany({ schoolId, teacherId }, { $set: { status: 'COMPLETED' } });
+    await SubjectAssignment.updateMany({ schoolId, teacherId }, { $set: { status: 'INACTIVE' } });
+
+    eventBus.emit(DOMAIN_EVENTS.TEACHER_UPDATED, { schoolId, teacherId });
+    return { message: 'Teacher deactivated successfully' };
+};
+
+export const assignTeacherClass = async (schoolId, teacherId, data) => {
+    const { classId, sectionId, academicYear = '2026-27', assignmentType = 'CLASS_TEACHER' } = data;
+    if (!classId || !sectionId) throw ApiError.badRequest('Class ID and Section ID are required');
+
+    const teacher = await User.findOne({ _id: teacherId, schoolId, role: 'TEACHER' });
+    if (!teacher) throw ApiError.notFound('Teacher not found');
+
+    const assignment = await TeacherAssignment.findOneAndUpdate(
+        { schoolId, teacherId, classId, sectionId },
+        {
+            $set: {
+                academicYear,
+                assignmentType,
+                status: 'ACTIVE',
+                startDate: new Date()
+            }
+        },
+        { upsert: true, new: true }
+    ).populate('classId', 'name').populate('sectionId', 'name');
+
+    eventBus.emit(DOMAIN_EVENTS.TEACHER_UPDATED, { schoolId, teacherId });
+    return assignment;
+};
+
+export const assignTeacherSubject = async (schoolId, teacherId, data) => {
+    const { subjectId, classId, sectionId, periodsPerWeek = 5, academicYear = '2026-27' } = data;
+    if (!subjectId || !classId || !sectionId) throw ApiError.badRequest('Subject, Class, and Section are required');
+
+    const teacher = await User.findOne({ _id: teacherId, schoolId, role: 'TEACHER' });
+    if (!teacher) throw ApiError.notFound('Teacher not found');
+
+    const assignment = await SubjectAssignment.findOneAndUpdate(
+        { schoolId, teacherId, subjectId, classId, sectionId },
+        {
+            $set: {
+                academicYear,
+                periodsPerWeek: Number(periodsPerWeek) || 5,
+                status: 'ACTIVE'
+            }
+        },
+        { upsert: true, new: true }
+    ).populate('subjectId', 'name code').populate('classId', 'name').populate('sectionId', 'name');
+
+    eventBus.emit(DOMAIN_EVENTS.TEACHER_UPDATED, { schoolId, teacherId });
+    return assignment;
+};
+
+export const removeTeacherAssignment = async (schoolId, teacherId, assignmentId, type = 'class') => {
+    if (type === 'subject') {
+        await SubjectAssignment.deleteOne({ _id: assignmentId, schoolId, teacherId });
+    } else {
+        await TeacherAssignment.deleteOne({ _id: assignmentId, schoolId, teacherId });
+    }
+    eventBus.emit(DOMAIN_EVENTS.TEACHER_UPDATED, { schoolId, teacherId });
+    return { message: 'Assignment removed successfully' };
 };
 
 // ============================================================================
@@ -604,15 +717,15 @@ export const getStaffList = async (schoolId, query = {}, scopeFilter = {}) => {
             firstName: u.firstName,
             lastName: u.lastName,
             email: u.email,
-            phone: u.phone || '+91 98765 43210',
+            phone: u.phone || '—',
             avatar: u.profilePhotoUrl,
             employeeId: prof.employeeId || `STF00${idx + 1}`,
             role: prof.designation || u.role.replace(/_/g, ' '),
             department: prof.department || 'Administration',
             status: prof.status === 'ON_LEAVE' || !u.isActive ? 'On Leave' : 'Active',
             joiningDate: prof.joiningDate || u.createdAt,
-            qualification: prof.qualification || 'Graduate',
-            tasksCount: prof.assignedTasks?.length || 4
+            qualification: prof.qualification || '—',
+            tasksCount: prof.assignedTasks?.length || 0
         };
     });
 
@@ -638,10 +751,10 @@ export const getStaffList = async (schoolId, query = {}, scopeFilter = {}) => {
             totalPages: Math.ceil(total / parseInt(limit)) || 1
         },
         kpis: {
-            totalStaff: total || 36,
-            activeStaff: combined.filter(s => s.status === 'Active').length || 34,
-            onLeaveStaff: combined.filter(s => s.status === 'On Leave').length || 2,
-            departmentsCount: uniqueDepts.size || 6
+            totalStaff: total,
+            activeStaff: combined.filter(s => s.status === 'Active').length,
+            onLeaveStaff: combined.filter(s => s.status === 'On Leave').length,
+            departmentsCount: uniqueDepts.size
         }
     };
 };
@@ -786,7 +899,7 @@ export const getEmployeeAttendance = async (schoolId, query = {}, scopeFilter = 
         role: { $in: ['TEACHER', 'ACCOUNTANT', 'LIBRARIAN', 'FRONT_OFFICE', 'DRIVER', 'STAFF'] },
         isActive: true,
         ...scopeFilter
-    }).select('_id firstName lastName email phone profilePhotoUrl role department').lean();
+    }).select('_id firstName lastName email phone profilePhotoUrl role department employeeId').lean();
 
     const userIds = users.map(u => u._id);
     const staffProfiles = await StaffProfile.find({ schoolId, userId: { $in: userIds } }).lean();
@@ -812,21 +925,21 @@ export const getEmployeeAttendance = async (schoolId, query = {}, scopeFilter = 
     let rows = users.map((u, idx) => {
         const meta = metaMap.get(String(u._id)) || { dept: u.department || 'Administration', role: u.role.replace(/_/g, ' ') };
         const att = attMap.get(String(u._id));
-        const currentStatus = att ? att.status : (idx % 12 === 0 ? 'ON_LEAVE' : idx % 15 === 0 ? 'ABSENT' : 'PRESENT');
+        const currentStatus = att ? att.status : 'NOT_MARKED';
 
         return {
             id: u._id,
-            employeeId: `EMP00${idx + 1}`,
-            name: `${u.firstName} ${u.lastName}`,
+            employeeId: u.employeeId || `EMP00${idx + 1}`,
+            name: `${u.firstName} ${u.lastName}`.trim(),
             avatar: u.profilePhotoUrl,
             role: meta.role,
             department: meta.dept,
-            presentDays: 26,
-            absentDays: currentStatus === 'ABSENT' ? 2 : 1,
-            lateDays: 0,
+            presentDays: att?.presentDays || (currentStatus === 'PRESENT' ? 1 : 0),
+            absentDays: currentStatus === 'ABSENT' ? 1 : 0,
+            lateDays: currentStatus === 'LATE' ? 1 : 0,
             status: currentStatus,
-            checkInTime: att?.checkInTime || (currentStatus === 'PRESENT' ? '08:55 AM' : null),
-            checkOutTime: att?.checkOutTime || (currentStatus === 'PRESENT' ? '05:00 PM' : null)
+            checkInTime: att?.checkInTime || null,
+            checkOutTime: att?.checkOutTime || null
         };
     });
 
@@ -844,6 +957,9 @@ export const getEmployeeAttendance = async (schoolId, query = {}, scopeFilter = 
     const absentCount = rows.filter(r => r.status === 'ABSENT').length;
     const lateCount = rows.filter(r => r.status === 'LATE').length;
     const onLeaveCount = rows.filter(r => r.status === 'ON_LEAVE').length;
+    const notMarkedCount = rows.filter(r => r.status === 'NOT_MARKED').length;
+    const markedTotal = presentCount + absentCount + lateCount;
+    const attendanceRate = markedTotal > 0 ? Math.round(((presentCount + lateCount * 0.5) / markedTotal) * 1000) / 10 : 0;
 
     return {
         records: rows,
@@ -852,7 +968,10 @@ export const getEmployeeAttendance = async (schoolId, query = {}, scopeFilter = 
             absent: absentCount,
             late: lateCount,
             onLeave: onLeaveCount,
-            totalEmployees: rows.length
+            notMarked: notMarkedCount,
+            totalEmployees: rows.length,
+            total: rows.length,
+            attendanceRate
         }
     };
 };
@@ -877,6 +996,15 @@ export const markEmployeeAttendance = async (schoolId, data, markedBy) => {
         { upsert: true, new: true }
     );
 
+    // Emit domain event for real-time live sync across school users
+    eventBus.publish(DOMAIN_EVENTS.ATTENDANCE_MARKED, {
+        schoolId,
+        employeeId,
+        date: normalizedDate,
+        status: record.status,
+        markedBy
+    });
+
     return record;
 };
 
@@ -885,8 +1013,6 @@ export const markEmployeeAttendance = async (schoolId, data, markedBy) => {
 // ============================================================================
 
 export const getParentsList = async (schoolId, query = {}, scopeFilter = {}) => {
-    await seedPeopleDemoData(schoolId);
-
     const {
         page = 1,
         limit = 10,
@@ -937,9 +1063,9 @@ export const getParentsList = async (schoolId, query = {}, scopeFilter = {}) => 
     const combined = parents.map(p => {
         const rels = relationMap.get(String(p._id)) || [];
         const primaryStudent = rels[0]?.studentId;
-        const studentName = primaryStudent ? `${primaryStudent.firstName} ${primaryStudent.lastName}` : 'Aarav Kumar';
-        const className = primaryStudent ? `${primaryStudent.classId?.name || 'Class 6'} - ${primaryStudent.sectionId?.name || 'A'}` : 'Class 6 - A';
-        const relationship = rels[0]?.relationship === 'MOTHER' ? 'Mother' : 'Father';
+        const studentName = primaryStudent ? `${primaryStudent.firstName} ${primaryStudent.lastName}`.trim() : 'No student assigned';
+        const className = primaryStudent ? `${primaryStudent.classId?.name || 'Class'} - ${primaryStudent.sectionId?.name || 'Section'}` : '—';
+        const relationship = rels[0]?.relationship || p.relationship || 'Guardian';
 
         return {
             id: p._id,
@@ -948,22 +1074,22 @@ export const getParentsList = async (schoolId, query = {}, scopeFilter = {}) => 
             fullName: p.fullName,
             parentName: p.fullName,
             studentName,
-            relationship: p.relationship || relationship,
+            relationship,
             className,
             phone: p.phone,
-            email: p.email || 'parent@gmail.com',
+            email: p.email || '',
             status: p.status === 'ACTIVE' ? 'ACTIVE' : 'INACTIVE',
-            occupation: p.occupation || 'Professional',
-            employer: p.employer || 'Private Sector',
+            occupation: p.occupation || '—',
+            employer: p.employer || '—',
             canPickupStudent: p.canPickupStudent !== false,
             canReceiveNotifications: p.canReceiveNotifications !== false,
             address: p.address,
             childrenCount: rels.length,
             children: rels.map(r => ({
                 id: r.studentId?._id,
-                name: r.studentId ? `${r.studentId.firstName} ${r.studentId.lastName}` : 'Enrolled Student',
-                class: r.studentId?.classId ? `${r.studentId.classId.name || ''} - ${r.studentId.sectionId?.name || ''}` : 'Class 6 - A',
-                admissionNo: r.studentId?.admissionNo || 'STU001',
+                name: r.studentId ? `${r.studentId.firstName} ${r.studentId.lastName}`.trim() : 'Student',
+                class: r.studentId?.classId ? `${r.studentId.classId.name || ''} - ${r.studentId.sectionId?.name || ''}` : '—',
+                admissionNo: r.studentId?.admissionNo || '—',
                 relationship: r.relationship
             }))
         };
@@ -971,6 +1097,9 @@ export const getParentsList = async (schoolId, query = {}, scopeFilter = {}) => 
 
     const total = combined.length;
     const paginated = combined.slice(skip, skip + parseInt(limit));
+
+    const activeCount = combined.filter(p => p.status === 'ACTIVE').length;
+    const multiChildCount = combined.filter(p => p.childrenCount > 1).length;
 
     return {
         parents: paginated,
@@ -981,10 +1110,11 @@ export const getParentsList = async (schoolId, query = {}, scopeFilter = {}) => 
             totalPages: Math.ceil(total / parseInt(limit)) || 1
         },
         kpis: {
-            totalParents: total || 1248,
-            activeParents: combined.filter(p => p.status === 'Active').length || 1186,
-            newThisMonth: 42,
-            meetingsScheduled: 18
+            totalParents: total,
+            activeParents: activeCount,
+            activeGuardians: activeCount,
+            multiChildFamilies: multiChildCount,
+            portalActiveRate: total > 0 ? Math.round((activeCount / total) * 100) : 0
         }
     };
 };
@@ -1059,4 +1189,102 @@ export const createParent = async (schoolId, data, currentUserId) => {
     }
 
     return parent;
+};
+
+export const getMyChildren = async (schoolId, user) => {
+    if (!schoolId || !user) return [];
+
+    let students = [];
+
+    if (user.role === 'STUDENT') {
+        const stu = await Student.findOne({
+            schoolId,
+            $or: [{ userId: user._id || user.id }, { email: user.email }]
+        }).populate('classId', 'name').populate('sectionId', 'name').lean();
+
+        if (stu) students = [stu];
+    } else {
+        // Parent role: look up parent profile
+        let parentProfile = await ParentProfile.findOne({
+            schoolId,
+            $or: [
+                { userId: user._id || user.id },
+                { email: user.email },
+                ...(user.phone ? [{ phone: user.phone }] : [])
+            ]
+        }).lean();
+
+        let parentIds = [];
+        if (parentProfile) parentIds.push(parentProfile._id);
+        if (user._id) parentIds.push(user._id);
+
+        const relations = await ParentStudentRelation.find({
+            schoolId,
+            parentId: { $in: parentIds },
+            status: 'ACTIVE'
+        }).populate({
+            path: 'studentId',
+            select: 'firstName lastName admissionNo rollNo classId sectionId photoUrl',
+            populate: [
+                { path: 'classId', select: 'name' },
+                { path: 'sectionId', select: 'name' }
+            ]
+        }).lean();
+
+        students = relations.map(r => r.studentId).filter(Boolean);
+    }
+
+    // Enrich each student with real database metrics
+    const enriched = [];
+    for (const s of students) {
+        const studentId = s._id;
+        const sectionId = s.sectionId?._id || s.sectionId;
+
+        // 1. Calculate real attendance rate from Attendance collection
+        let attRateStr = 'N/A';
+        const attDocs = await Attendance.find({
+            schoolId,
+            'records.studentId': studentId
+        }).sort({ date: -1 }).limit(30).select('records').lean().catch(() => []);
+
+        let totalDays = 0;
+        let presentDays = 0;
+        attDocs.forEach(doc => {
+            const myRecord = (doc.records || []).find(r => r.studentId?.toString() === studentId.toString());
+            if (myRecord) {
+                totalDays++;
+                if (['PRESENT', 'LATE'].includes(myRecord.status)) presentDays++;
+            }
+        });
+        if (totalDays > 0) {
+            attRateStr = `${Math.round((presentDays / totalDays) * 1000) / 10}%`;
+        }
+
+        // 2. Count real active homework pending for student's class/section
+        let pendingHwCount = 0;
+        if (sectionId) {
+            const activeAssignments = await Assignment.find({
+                schoolId,
+                sectionId,
+                status: 'PUBLISHED'
+            }).select('_id').lean().catch(() => []);
+
+            pendingHwCount = activeAssignments.length;
+        }
+
+        enriched.push({
+            id: s._id,
+            name: `${s.firstName} ${s.lastName}`.trim(),
+            class: `${s.classId?.name || 'Class'} - ${s.sectionId?.name || 'A'}`,
+            rollNo: s.rollNo || s.admissionNo || '—',
+            admissionNo: s.admissionNo || '—',
+            avatar: s.photoUrl || s.firstName?.charAt(0) || 'S',
+            school: user.schoolName || 'PrimeSchoolOS Academy',
+            attendance: attRateStr,
+            pendingHomework: pendingHwCount,
+            feesDue: '₹0'
+        });
+    }
+
+    return enriched;
 };

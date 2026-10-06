@@ -16,8 +16,7 @@ import LoginPage from './auth/LoginPage';
 import ForgotPasswordPage from './auth/ForgotPasswordPage';
 import SuperAdminApp from './portals/super-admin/SuperAdminApp';
 import SchoolErpApp from './portals/school-erp/SchoolErpApp';
-import StaffApp from './portals/staff/StaffApp';
-import ParentApp from './portals/parent/ParentApp';
+import FamilyPortalApp from './portals/family-portal/FamilyPortalApp';
 import DriverApp from './portals/driver/DriverApp';
 import NotFoundPage from './components/common/NotFoundPage';
 import UnauthorizedPage from './components/common/UnauthorizedPage';
@@ -77,6 +76,7 @@ function App() {
                 />
 
                 {/* ── School ERP (Admin, Accountant, Librarian, FrontOffice) ── */}
+                {/* ── School ERP (Unified for Admin, Teacher, Staff, Accountant, Librarian) ── */}
                 <Route
                     path="/school/*"
                     element={
@@ -86,25 +86,21 @@ function App() {
                     }
                 />
 
-                {/* ── Teacher / Staff App (mobile-first) ────────────────────── */}
+                {/* Legacy /staff redirect to unified School ERP */}
+                <Route path="/staff/*" element={<Navigate to="/school" replace />} />
+
+                {/* ── Family Portal (Unified for Parents & Students with Child Switcher) ── */}
                 <Route
-                    path="/staff/*"
+                    path="/portal/*"
                     element={
-                        <ProtectedRoute requiredRole={ROLES.TEACHER}>
-                            <StaffApp />
+                        <ProtectedRoute requiredRole={[ROLES.PARENT, ROLES.STUDENT]}>
+                            <FamilyPortalApp />
                         </ProtectedRoute>
                     }
                 />
 
-                {/* ── Parent / Student App (mobile-first) ───────────────────── */}
-                <Route
-                    path="/parent/*"
-                    element={
-                        <ProtectedRoute requiredRole={[ROLES.PARENT, ROLES.STUDENT]}>
-                            <ParentApp />
-                        </ProtectedRoute>
-                    }
-                />
+                {/* Legacy /parent redirect to unified Family Portal */}
+                <Route path="/parent/*" element={<Navigate to="/portal" replace />} />
 
                 {/* ── Driver App (mobile-first) ─────────────────────────────── */}
                 <Route

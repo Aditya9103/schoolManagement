@@ -9,28 +9,17 @@ const TIME_SLOTS = [
 export default function TeacherScheduleGrid({ teacherName = 'Teacher', scheduleSlots = [] }) {
     const [viewMode, setViewMode] = useState('week'); // 'week' | 'month'
 
-    // Mock/default visual blocks if empty
-    const visualBlocks = [
-        { dayIndex: 0, time: '8:00 AM', title: '6-B Mathematics', room: 'Room 101', color: 'bg-blue-100 border-blue-200 text-blue-900' },
-        { dayIndex: 0, time: '10:00 AM', title: '7-A Mathematics', room: 'Room 107', color: 'bg-blue-100 border-blue-200 text-blue-900' },
-        { dayIndex: 0, time: '11:00 AM', title: '8-A Mathematics', room: 'Room 201', color: 'bg-blue-100 border-blue-200 text-blue-900' },
-
-        { dayIndex: 1, time: '9:00 AM', title: '8-B Mathematics', room: 'Room 205', color: 'bg-blue-100 border-blue-200 text-blue-900' },
-        { dayIndex: 1, time: '10:00 AM', title: '7-B Mathematics', room: 'Room 109', color: 'bg-blue-100 border-blue-200 text-blue-900' },
-        { dayIndex: 1, time: '11:00 AM', title: '9-A Mathematics', room: 'Room 204', color: 'bg-blue-100 border-blue-200 text-blue-900' },
-
-        { dayIndex: 2, time: '10:00 AM', title: 'Department Meeting', room: 'Conf Room', color: 'bg-amber-100 border-amber-200 text-amber-900' },
-
-        { dayIndex: 3, time: '9:00 AM', title: '6-A Mathematics', room: 'Room 104', color: 'bg-blue-100 border-blue-200 text-blue-900' },
-        { dayIndex: 3, time: '10:00 AM', title: '7-A Mathematics', room: 'Room 107', color: 'bg-blue-100 border-blue-200 text-blue-900' },
-        { dayIndex: 3, time: '11:00 AM', title: '8-B Mathematics', room: 'Room 205', color: 'bg-blue-100 border-blue-200 text-blue-900' },
-
-        { dayIndex: 4, time: '9:00 AM', title: 'Test Review', room: 'Room 204', color: 'bg-purple-100 border-purple-200 text-purple-900' },
-        { dayIndex: 4, time: '1:00 PM', title: 'PTM Session', room: 'Hall B', color: 'bg-rose-100 border-rose-200 text-rose-900' },
-
-        { dayIndex: 5, time: '9:00 AM', title: 'School Event', room: 'Auditorium', color: 'bg-amber-50 border-amber-200 text-amber-900' },
-        { dayIndex: 5, time: '2:00 PM', title: 'Staff Meeting', room: 'Staff Room', color: 'bg-blue-50 border-blue-200 text-blue-900' },
-    ];
+    const visualBlocks = React.useMemo(() => {
+        if (!scheduleSlots || !scheduleSlots.length) return [];
+        const daysMap = { Monday: 0, Tuesday: 1, Wednesday: 2, Thursday: 3, Friday: 4, Saturday: 5 };
+        return scheduleSlots.map((s) => ({
+            dayIndex: s.dayIndex ?? (s.day ? (daysMap[s.day] ?? 0) : 0),
+            time: s.time || s.startTime || '9:00 AM',
+            title: s.title || `${s.className || 'Class'} ${s.subject || ''}`.trim(),
+            room: s.room || s.roomNumber || 'Room 101',
+            color: s.color || 'bg-blue-100 border-blue-200 text-blue-900',
+        }));
+    }, [scheduleSlots]);
 
     return (
         <div className="space-y-6">

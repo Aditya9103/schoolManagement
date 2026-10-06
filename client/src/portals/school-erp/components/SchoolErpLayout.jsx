@@ -117,12 +117,73 @@ const NAV_GROUPS = [
     }
 ];
 
+const TEACHER_NAV_GROUPS = [
+    {
+        title: null,
+        items: [
+            { to: '/school', label: 'Dashboard', Icon: LayoutDashboard, end: true }
+        ]
+    },
+    {
+        title: 'TEACHING',
+        items: [
+            { to: '/school/classes/timetable', label: 'My Timetable', Icon: Calendar },
+            { to: '/school/classes', label: 'My Classes', Icon: Layers },
+            { to: '/school/students', label: 'My Students', Icon: Users },
+        ]
+    },
+    {
+        title: 'ACADEMICS',
+        items: [
+            { to: '/school/classes/subjects', label: 'Subjects', Icon: BookOpen },
+            { to: '/school/lesson-planning', label: 'Lesson Planning', Icon: FileText },
+            { to: '/school/assignments', label: 'Homework & Assignments', Icon: ClipboardList },
+            { to: '/school/study-materials', label: 'Study Materials', Icon: FolderOpen },
+            { to: '/school/exams', label: 'Exams & Results', Icon: Award },
+            { to: '/school/question-bank', label: 'Question Bank', Icon: BookOpen },
+        ]
+    },
+    {
+        title: 'STUDENTS',
+        items: [
+            { to: '/school/attendance', label: 'Attendance', Icon: ClipboardList },
+            { to: '/school/performance', label: 'Performance', Icon: TrendingUp },
+            { to: '/school/parents', label: 'Parents', Icon: Users },
+        ]
+    },
+    {
+        title: 'COMMUNICATION',
+        items: [
+            { to: '/school/notices', label: 'Notices', Icon: Bell },
+            { to: '/school/messages', label: 'Messages', Icon: MessageSquare },
+            { to: '/school/announcements', label: 'Announcements', Icon: Megaphone },
+        ]
+    },
+    {
+        title: 'MY WORK',
+        items: [
+            { to: '/school/staff/attendance', label: 'My Attendance', Icon: ClipboardList },
+            { to: '/school/leave', label: 'Leave Requests', Icon: ArrowRightLeft },
+            { to: '/school/documents', label: 'My Documents', Icon: FolderOpen },
+            { to: '/school/profile', label: 'My Profile', Icon: UserCheck },
+        ]
+    }
+];
+
+const TEACHER_MOBILE_BOTTOM_NAV = [
+    { to: '/school', label: 'Home', Icon: LayoutDashboard, end: true },
+    { to: '/school/classes', label: 'Classes', Icon: Layers },
+    { to: '/school/attendance', label: 'Attendance', Icon: ClipboardList },
+    { to: '/school/assignments', label: 'Homework', Icon: FileText },
+    { to: '/school/profile', label: 'Profile', Icon: UserCheck }
+];
+
 const MOBILE_BOTTOM_NAV = [
     { to: '/school', label: 'Home', Icon: LayoutDashboard, end: true, featureId: 'dashboard_main' },
     { to: '/school/students', label: 'Students', Icon: Users, featureId: 'students_list' },
     { to: '/school/attendance', label: 'Attendance', Icon: ClipboardList, featureId: 'academic_attendance' },
     { to: '/school/fees', label: 'Fees', Icon: Wallet, featureId: 'fees_collection' },
-    { to: '/school/settings', label: 'More', Icon: Settings, featureId: null }
+    { to: '/school/settings', label: 'Settings', Icon: Settings, featureId: 'settings_school' }
 ];
 
 export default function SchoolErpLayout({ children }) {
@@ -149,15 +210,21 @@ export default function SchoolErpLayout({ children }) {
     const dispatch = useDispatch();
     const navigate = useNavigate();
 
-    // Filter navigation groups dynamically based on assigned permissions
-    const filteredNavGroups = NAV_GROUPS.map((group) => ({
-        ...group,
-        items: group.items.filter((item) => !item.featureId || isAdmin || canAccess(item.featureId))
-    })).filter((group) => group.items.length > 0);
+    const isTeacher = user?.role === 'TEACHER';
 
-    const filteredMobileNav = MOBILE_BOTTOM_NAV.filter(
-        (item) => !item.featureId || isAdmin || canAccess(item.featureId)
-    );
+    // Filter navigation groups dynamically based on assigned permissions
+    const filteredNavGroups = isTeacher
+        ? TEACHER_NAV_GROUPS
+        : NAV_GROUPS.map((group) => ({
+            ...group,
+            items: group.items.filter((item) => !item.featureId || isAdmin || canAccess(item.featureId))
+        })).filter((group) => group.items.length > 0);
+
+    const filteredMobileNav = isTeacher
+        ? TEACHER_MOBILE_BOTTOM_NAV
+        : MOBILE_BOTTOM_NAV.filter(
+            (item) => !item.featureId || isAdmin || canAccess(item.featureId)
+        );
 
     const fullName = user?.firstName
         ? `${user.firstName} ${user.lastName || ''}`.trim()

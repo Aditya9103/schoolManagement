@@ -4,11 +4,18 @@ import {
     Users, UserCheck, Plus, Search, Filter, Grid, List, BarChart3,
     Eye, Calendar, BookOpen, Layers, CheckCircle2, Clock, RefreshCw,
     Mail, Phone, ChevronLeft, ChevronRight, Award, GraduationCap,
-    ArrowUpRight, ArrowRight, Star
+    ArrowUpRight, ArrowRight, Star, Download, Edit3, Trash2,
+    ToggleLeft, ToggleRight, AlertCircle, PlusCircle
 } from 'lucide-react';
-import { useGetTeachersQuery } from '../../../../store/api/peopleApi';
+import {
+    useGetTeachersQuery,
+    useUpdateTeacherMutation,
+    useDeleteTeacherMutation
+} from '../../../../store/api/peopleApi';
 import usePermissions from '../../../../hooks/usePermissions';
 import AddTeacherModal from './components/AddTeacherModal';
+import EditTeacherModal from './components/EditTeacherModal';
+import AssignClassSubjectModal from './components/AssignClassSubjectModal';
 
 export default function TeachersPage() {
     const navigate = useNavigate();
@@ -20,7 +27,18 @@ export default function TeachersPage() {
     const [selectedDept, setSelectedDept] = useState('All');
     const [selectedSubject, setSelectedSubject] = useState('All');
     const [page, setPage] = useState(1);
+
+    // Modals
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [editingTeacher, setEditingTeacher] = useState(null);
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [assigningTeacher, setAssigningTeacher] = useState(null);
+    const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
+    const [teacherToDelete, setTeacherToDelete] = useState(null);
+    const [actionMsg, setActionMsg] = useState(null);
+
+    const [updateTeacher, { isLoading: isUpdating }] = useUpdateTeacherMutation();
+    const [deleteTeacher, { isLoading: isDeleting }] = useDeleteTeacherMutation();
 
     const queryParams = useMemo(() => ({
         page,
@@ -35,15 +53,17 @@ export default function TeachersPage() {
 
     const teachers = resData?.data?.teachers || [];
     const kpis = resData?.data?.kpis || {
-        totalTeachers: 48,
-        activeTeachers: 46,
-        onLeaveTeachers: 2,
-        subjectExperts: 12,
-        departmentsCount: 8
+        totalTeachers: teachers.length,
+        activeTeachers: teachers.filter(t => t.status === 'Active').length,
+        onLeaveTeachers: teachers.filter(t => t.status === 'On Leave').length,
+        subjectExperts: 0,
+        departmentsCount: 0
     };
     const pagination = resData?.data?.pagination || { page: 1, totalPages: 1, total: teachers.length };
 
     const canCreate = isAdmin || hasAction('teachers_directory', 'create');
+    const canEdit = isAdmin || hasAction('teachers_directory', 'edit');
+    const canDelete = isAdmin || hasAction('teachers_directory', 'delete');
 
     const handleReset = () => {
         setSearch('');
@@ -53,10 +73,98 @@ export default function TeachersPage() {
         setPage(1);
     };
 
+    const handleToggleStatus = async (teacher, e) => {
+        e?.stopPropagation();
+        const teacherId = teacher.id || teacher._id;
+        const isLeave = teacher.status === 'On Leave' || teacher.status === 'ON_LEAVE';
+        const newStatus = isLeave ? 'ACTIVE' : 'ON_LEAVE';
+
+        try {
+            await updateTeacher({ id: teacherId, status: newStatus }).unwrap();
+            setActionMsg({
+                type: 'success',
+                text: `${teacher.name} status updated to ${isLeave ? 'Active' : 'On Leave'}.`
+            });
+            setTimeout(() => setActionMsg(null), 3500);
+        } catch (err) {
+            setActionMsg({
+                type: 'error',
+                text: err?.data?.message || 'Failed to update teacher status.'
+            });
+            setTimeout(() => setActionMsg(null), 3500);
+        }
+    };
+
+    const confirmDeleteTeacher = async () => {
+        if (!teacherToDelete) return;
+        const teacherId = teacherToDelete.id || teacherToDelete._id;
+
+        try {
+            await deleteTeacher(teacherId).unwrap();
+            setActionMsg({
+                type: 'success',
+                text: `Faculty member ${teacherToDelete.name} has been deactivated.`
+            });
+            setTeacherToDelete(null);
+            setTimeout(() => setActionMsg(null), 3500);
+        } catch (err) {
+            setActionMsg({
+                type: 'error',
+                text: err?.data?.message || 'Failed to deactivate teacher.'
+            });
+            setTeacherToDelete(null);
+            setTimeout(() => setActionMsg(null), 3500);
+        }
+    };
+
+    const handleExportCSV = () => {
+        if (!teachers.length) {
+            alert('No teacher records available to export.');
+            return;
+        }
+
+        const headers = [
+            'Name',
+            'Employee ID',
+            'Department',
+            'Designation',
+            'Qualification',
+            'Experience',
+            'Status',
+            'Phone',
+            'Email',
+            'Subjects',
+            'Classes'
+        ];
+
+        const rows = teachers.map((t) => [
+            `"${t.name || ''}"`,
+            `"${t.employeeId || ''}"`,
+            `"${t.department || ''}"`,
+            `"${t.designation || ''}"`,
+            `"${t.qualification || ''}"`,
+            `"${t.experience || ''}"`,
+            `"${t.status || 'Active'}"`,
+            `"${t.phone || ''}"`,
+            `"${t.email || ''}"`,
+            `"${t.subjects || ''}"`,
+            `"${t.classes || ''}"`
+        ]);
+
+        const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement('a');
+        link.setAttribute('href', encodedUri);
+        link.setAttribute('download', `teachers_directory_${new Date().toISOString().slice(0, 10)}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
     const statCards = [
         {
             title: 'Total Faculty',
-            value: kpis.totalTeachers,
+            value: kpis.totalTeachers ?? 0,
             change: '+6%',
             subtext: 'Appointed instructors',
             Icon: GraduationCap,
@@ -65,8 +173,8 @@ export default function TeachersPage() {
         },
         {
             title: 'Active & Teaching',
-            value: kpis.activeTeachers,
-            change: `${Math.round((kpis.activeTeachers / (kpis.totalTeachers || 1)) * 100)}%`,
+            value: kpis.activeTeachers ?? 0,
+            change: kpis.totalTeachers ? `${Math.round((kpis.activeTeachers / kpis.totalTeachers) * 100)}%` : '0%',
             subtext: 'Operational today',
             Icon: UserCheck,
             iconBg: 'bg-emerald-100 text-emerald-600',
@@ -74,16 +182,16 @@ export default function TeachersPage() {
         },
         {
             title: 'Subject Specialists',
-            value: kpis.subjectExperts || 12,
-            change: '+20%',
+            value: kpis.subjectExperts ?? 0,
+            change: null,
             subtext: 'Curriculum leads',
             Icon: Award,
             iconBg: 'bg-amber-100 text-amber-600',
-            trendBg: 'text-emerald-700 bg-emerald-50 border-emerald-200',
+            trendBg: null,
         },
         {
             title: 'Academic Depts',
-            value: kpis.departmentsCount || 8,
+            value: kpis.departmentsCount ?? 0,
             change: null,
             subtext: 'Science, Math, Arts...',
             Icon: Layers,
@@ -94,6 +202,29 @@ export default function TeachersPage() {
 
     return (
         <div className="min-h-screen bg-[#f8fafc] p-3 sm:p-5 lg:p-6 space-y-5 max-w-[1720px] mx-auto pb-16">
+            {/* Feedback alert toast */}
+            {actionMsg && (
+                <div
+                    className={`p-3.5 rounded-2xl border text-xs font-bold flex items-center justify-between shadow-md transition-all ${
+                        actionMsg.type === 'success'
+                            ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                            : 'bg-rose-50 text-rose-800 border-rose-200'
+                    }`}
+                >
+                    <div className="flex items-center gap-2">
+                        {actionMsg.type === 'success' ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
+                        <span>{actionMsg.text}</span>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={() => setActionMsg(null)}
+                        className="text-slate-400 hover:text-slate-600 font-bold ml-4 cursor-pointer"
+                    >
+                        ✕
+                    </button>
+                </div>
+            )}
+
             {/* ── Tier 1: Header & Top Actions Hub ────────────────────────────── */}
             <div className="bg-white p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-200/90 shadow-2xs flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                 <div className="flex items-start sm:items-center gap-3.5">
@@ -127,6 +258,16 @@ export default function TeachersPage() {
                         title="Refresh list"
                     >
                         <RefreshCw size={15} />
+                    </button>
+
+                    <button
+                        type="button"
+                        onClick={handleExportCSV}
+                        className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-300 text-slate-700 text-xs font-bold rounded-xl shadow-2xs transition-all cursor-pointer"
+                        title="Download CSV spreadsheet"
+                    >
+                        <Download size={15} />
+                        <span className="hidden sm:inline">Export CSV</span>
                     </button>
 
                     {canCreate && (
@@ -194,7 +335,7 @@ export default function TeachersPage() {
                                     : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                             }`}
                         >
-                            All Teachers ({kpis.totalTeachers})
+                            All Teachers ({kpis.totalTeachers ?? 0})
                         </button>
                         <button
                             type="button"
@@ -205,7 +346,7 @@ export default function TeachersPage() {
                                     : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                             }`}
                         >
-                            Active ({kpis.activeTeachers})
+                            Active ({kpis.activeTeachers ?? 0})
                         </button>
                         <button
                             type="button"
@@ -216,7 +357,7 @@ export default function TeachersPage() {
                                     : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                             }`}
                         >
-                            On Leave ({kpis.onLeaveTeachers})
+                            On Leave ({kpis.onLeaveTeachers ?? 0})
                         </button>
                     </div>
 
@@ -281,6 +422,7 @@ export default function TeachersPage() {
                             <option value="Computer Science">Computer Science</option>
                             <option value="Hindi">Hindi</option>
                             <option value="Physical Education">Physical Education</option>
+                            <option value="Arts & Music">Arts & Music</option>
                         </select>
 
                         <select
@@ -322,15 +464,26 @@ export default function TeachersPage() {
                     <GraduationCap size={36} className="text-slate-300 mx-auto" />
                     <h3 className="text-sm font-bold text-slate-900">No teachers found</h3>
                     <p className="text-xs text-slate-500 max-w-sm mx-auto font-medium">
-                        No faculty match your selected department or filter criteria. Try clearing search filters.
+                        No faculty match your selected department or filter criteria. Try clearing search filters or add a new teacher.
                     </p>
-                    <button
-                        type="button"
-                        onClick={handleReset}
-                        className="mt-2 px-4 py-2 text-xs font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-xl transition-colors"
-                    >
-                        Reset All Filters
-                    </button>
+                    <div className="flex items-center justify-center gap-2.5 pt-2">
+                        <button
+                            type="button"
+                            onClick={handleReset}
+                            className="px-4 py-2 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors cursor-pointer"
+                        >
+                            Reset Filters
+                        </button>
+                        {canCreate && (
+                            <button
+                                type="button"
+                                onClick={() => setIsAddModalOpen(true)}
+                                className="px-4 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-colors cursor-pointer"
+                            >
+                                Add Teacher
+                            </button>
+                        )}
+                    </div>
                 </div>
             ) : viewMode === 'list' ? (
                 /* ── High-Contrast Table View ─────────────────────────────── */
@@ -346,16 +499,17 @@ export default function TeachersPage() {
                                     <th className="py-3.5 px-4">Assigned Subjects</th>
                                     <th className="py-3.5 px-4">Classes</th>
                                     <th className="py-3.5 px-4 text-center">Status</th>
-                                    <th className="py-3.5 px-4 text-right">Actions</th>
+                                    <th className="py-3.5 px-4 text-right min-w-[180px]">Actions</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100">
                                 {teachers.map((t, idx) => {
                                     const isLeave = t.status === 'On Leave' || t.status === 'ON_LEAVE';
+                                    const teacherId = t.id || t._id;
                                     return (
                                         <tr
-                                            key={t.id || t._id}
-                                            onClick={() => navigate(`/school/teachers/${t.id || t._id}`)}
+                                            key={teacherId}
+                                            onClick={() => navigate(`/school/teachers/${teacherId}`)}
                                             className="hover:bg-blue-50/40 transition-colors cursor-pointer group"
                                         >
                                             <td className="py-3.5 px-4 text-center text-slate-400 font-bold">
@@ -399,28 +553,73 @@ export default function TeachersPage() {
                                             </td>
 
                                             <td className="py-3.5 px-4 font-semibold text-slate-700">
-                                                {t.classes || 'Class 6 - A'}
+                                                {t.classes || 'None'}
                                             </td>
 
-                                            <td className="py-3.5 px-4 text-center">
-                                                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold border ${
-                                                    isLeave
-                                                        ? 'bg-amber-50 text-amber-800 border-amber-300'
-                                                        : 'bg-emerald-50 text-emerald-800 border-emerald-300'
-                                                }`}>
+                                            <td className="py-3.5 px-4 text-center" onClick={(e) => e.stopPropagation()}>
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => handleToggleStatus(t, e)}
+                                                    title={`Click to switch to ${isLeave ? 'Active' : 'On Leave'}`}
+                                                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold border transition-all cursor-pointer ${
+                                                        isLeave
+                                                            ? 'bg-amber-50 text-amber-800 border-amber-300 hover:bg-amber-100'
+                                                            : 'bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100'
+                                                    }`}
+                                                >
                                                     <span className={`w-1.5 h-1.5 rounded-full ${isLeave ? 'bg-amber-500' : 'bg-emerald-500'}`} />
-                                                    {isLeave ? 'On Leave' : 'Active'}
-                                                </span>
+                                                    <span>{isLeave ? 'On Leave' : 'Active'}</span>
+                                                </button>
                                             </td>
 
                                             <td className="py-3.5 px-4 text-right" onClick={(e) => e.stopPropagation()}>
-                                                <button
-                                                    onClick={() => navigate(`/school/teachers/${t.id || t._id}`)}
-                                                    className="px-3 py-1.5 text-xs font-bold text-blue-700 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 rounded-xl border border-blue-200/80 transition-all inline-flex items-center gap-1 cursor-pointer"
-                                                >
-                                                    <Eye size={13} />
-                                                    View 360°
-                                                </button>
+                                                <div className="flex items-center justify-end gap-1.5">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setAssigningTeacher(t);
+                                                            setIsAssignModalOpen(true);
+                                                        }}
+                                                        className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
+                                                        title="Assign class or subject"
+                                                    >
+                                                        <PlusCircle size={15} />
+                                                    </button>
+
+                                                    {canEdit && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                setEditingTeacher(t);
+                                                                setIsEditModalOpen(true);
+                                                            }}
+                                                            className="p-1.5 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors cursor-pointer"
+                                                            title="Edit teacher profile"
+                                                        >
+                                                            <Edit3 size={15} />
+                                                        </button>
+                                                    )}
+
+                                                    {canDelete && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setTeacherToDelete(t)}
+                                                            className="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                                                            title="Deactivate teacher"
+                                                        >
+                                                            <Trash2 size={15} />
+                                                        </button>
+                                                    )}
+
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => navigate(`/school/teachers/${teacherId}`)}
+                                                        className="px-2.5 py-1 text-xs font-bold text-blue-700 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 rounded-lg border border-blue-200/80 transition-all inline-flex items-center gap-1 cursor-pointer"
+                                                    >
+                                                        <Eye size={13} />
+                                                        <span>360°</span>
+                                                    </button>
+                                                </div>
                                             </td>
                                         </tr>
                                     );
@@ -434,10 +633,11 @@ export default function TeachersPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {teachers.map((t) => {
                         const isLeave = t.status === 'On Leave' || t.status === 'ON_LEAVE';
+                        const teacherId = t.id || t._id;
                         return (
                             <div
-                                key={t.id || t._id}
-                                onClick={() => navigate(`/school/teachers/${t.id || t._id}`)}
+                                key={teacherId}
+                                onClick={() => navigate(`/school/teachers/${teacherId}`)}
                                 className="bg-white rounded-2xl border border-slate-200/90 hover:border-blue-400 p-5 shadow-2xs hover:shadow-md transition-all cursor-pointer flex flex-col justify-between group"
                             >
                                 <div>
@@ -463,14 +663,18 @@ export default function TeachersPage() {
                                             </div>
                                         </div>
 
-                                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border ${
-                                            isLeave
-                                                ? 'bg-amber-50 text-amber-800 border-amber-300'
-                                                : 'bg-emerald-50 text-emerald-800 border-emerald-300'
-                                        }`}>
+                                        <button
+                                            type="button"
+                                            onClick={(e) => handleToggleStatus(t, e)}
+                                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border transition-colors ${
+                                                isLeave
+                                                    ? 'bg-amber-50 text-amber-800 border-amber-300 hover:bg-amber-100'
+                                                    : 'bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100'
+                                            }`}
+                                        >
                                             <span className={`w-1.5 h-1.5 rounded-full ${isLeave ? 'bg-amber-500' : 'bg-emerald-500'}`} />
                                             {isLeave ? 'On Leave' : 'Active'}
-                                        </span>
+                                        </button>
                                     </div>
 
                                     {/* Subjects & Classes Banner */}
@@ -481,18 +685,53 @@ export default function TeachersPage() {
                                         </div>
                                         <div className="flex items-center justify-between">
                                             <span className="text-slate-500 font-medium">Classes</span>
-                                            <span className="font-semibold text-slate-800">{t.classes || 'Class 6'}</span>
+                                            <span className="font-semibold text-slate-800">{t.classes || 'None'}</span>
                                         </div>
                                     </div>
                                 </div>
 
-                                <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
-                                    <span className="text-[11px] font-bold text-slate-600 flex items-center gap-1">
-                                        <Star size={13} className="text-amber-500 fill-amber-500" />
-                                        {t.rating || 4.8} Evaluation Score
-                                    </span>
-                                    <span className="text-blue-600 font-bold group-hover:translate-x-0.5 transition-transform flex items-center gap-0.5">
-                                        View 360° Profile <ArrowRight size={13} />
+                                <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs" onClick={(e) => e.stopPropagation()}>
+                                    <div className="flex items-center gap-1">
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setAssigningTeacher(t);
+                                                setIsAssignModalOpen(true);
+                                            }}
+                                            className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg cursor-pointer"
+                                            title="Assign Class or Subject"
+                                        >
+                                            <PlusCircle size={15} />
+                                        </button>
+                                        {canEdit && (
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setEditingTeacher(t);
+                                                    setIsEditModalOpen(true);
+                                                }}
+                                                className="p-1.5 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg cursor-pointer"
+                                                title="Edit Profile"
+                                            >
+                                                <Edit3 size={15} />
+                                            </button>
+                                        )}
+                                        {canDelete && (
+                                            <button
+                                                type="button"
+                                                onClick={() => setTeacherToDelete(t)}
+                                                className="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg cursor-pointer"
+                                                title="Deactivate Teacher"
+                                            >
+                                                <Trash2 size={15} />
+                                            </button>
+                                        )}
+                                    </div>
+                                    <span
+                                        onClick={() => navigate(`/school/teachers/${teacherId}`)}
+                                        className="text-blue-600 font-bold group-hover:translate-x-0.5 transition-transform flex items-center gap-0.5 cursor-pointer"
+                                    >
+                                        View 360° <ArrowRight size={13} />
                                     </span>
                                 </div>
                             </div>
@@ -509,19 +748,21 @@ export default function TeachersPage() {
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div className="p-5 rounded-2xl bg-blue-50/60 border border-blue-200">
-                            <span className="text-xs font-bold text-blue-900 uppercase tracking-wider">Average Student Pass Rate</span>
-                            <div className="text-3xl font-black text-blue-700 mt-2 font-display">92.4%</div>
-                            <p className="text-xs text-blue-600 mt-1 font-medium">Across all classroom subjects</p>
+                            <span className="text-xs font-bold text-blue-900 uppercase tracking-wider">Total Active Instructors</span>
+                            <div className="text-3xl font-black text-blue-700 mt-2 font-display">{kpis.activeTeachers ?? 0}</div>
+                            <p className="text-xs text-blue-600 mt-1 font-medium">Currently delivering curriculum</p>
                         </div>
                         <div className="p-5 rounded-2xl bg-emerald-50/60 border border-emerald-200">
-                            <span className="text-xs font-bold text-emerald-900 uppercase tracking-wider">Faculty Attendance Rate</span>
-                            <div className="text-3xl font-black text-emerald-700 mt-2 font-display">96.2%</div>
+                            <span className="text-xs font-bold text-emerald-900 uppercase tracking-wider">Faculty Operational Rate</span>
+                            <div className="text-3xl font-black text-emerald-700 mt-2 font-display">
+                                {kpis.totalTeachers ? `${Math.round((kpis.activeTeachers / kpis.totalTeachers) * 100)}%` : '0%'}
+                            </div>
                             <p className="text-xs text-emerald-600 mt-1 font-medium">Consistent instructional delivery</p>
                         </div>
                         <div className="p-5 rounded-2xl bg-purple-50/60 border border-purple-200">
-                            <span className="text-xs font-bold text-purple-900 uppercase tracking-wider">Student Evaluation Score</span>
-                            <div className="text-3xl font-black text-purple-700 mt-2 font-display">4.8 / 5.0</div>
-                            <p className="text-xs text-purple-600 mt-1 font-medium">From 480 verified evaluations</p>
+                            <span className="text-xs font-bold text-purple-900 uppercase tracking-wider">Academic Departments</span>
+                            <div className="text-3xl font-black text-purple-700 mt-2 font-display">{kpis.departmentsCount ?? 0}</div>
+                            <p className="text-xs text-purple-600 mt-1 font-medium">Disciplines supported across school</p>
                         </div>
                     </div>
                 </div>
@@ -555,12 +796,70 @@ export default function TeachersPage() {
                 </div>
             </div>
 
-            {/* Modal */}
+            {/* Modals */}
             <AddTeacherModal
                 isOpen={isAddModalOpen}
                 onClose={() => setIsAddModalOpen(false)}
                 onSuccess={() => refetch()}
             />
+
+            <EditTeacherModal
+                isOpen={isEditModalOpen}
+                teacher={editingTeacher}
+                onClose={() => {
+                    setIsEditModalOpen(false);
+                    setEditingTeacher(null);
+                }}
+                onSuccess={() => refetch()}
+            />
+
+            <AssignClassSubjectModal
+                isOpen={isAssignModalOpen}
+                teacherId={assigningTeacher?.id || assigningTeacher?._id}
+                teacherName={assigningTeacher?.name}
+                onClose={() => {
+                    setIsAssignModalOpen(false);
+                    setAssigningTeacher(null);
+                }}
+                onSuccess={() => refetch()}
+            />
+
+            {/* Deactivation Confirmation Modal */}
+            {teacherToDelete && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+                    <div className="relative w-full max-w-md bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden p-6 space-y-4">
+                        <div className="flex items-center gap-3 text-rose-600">
+                            <div className="p-2.5 rounded-xl bg-rose-100">
+                                <Trash2 size={20} />
+                            </div>
+                            <h3 className="text-base font-bold text-slate-900">Deactivate Teacher Profile</h3>
+                        </div>
+
+                        <p className="text-xs text-slate-600 leading-relaxed">
+                            Are you sure you want to deactivate <strong className="text-slate-900">{teacherToDelete.name}</strong>?
+                            Their teaching account and active class assignments will be marked as inactive.
+                        </p>
+
+                        <div className="pt-2 flex items-center justify-end gap-3">
+                            <button
+                                type="button"
+                                onClick={() => setTeacherToDelete(null)}
+                                className="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-800 rounded-xl hover:bg-slate-100 transition-colors cursor-pointer"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                onClick={confirmDeleteTeacher}
+                                disabled={isDeleting}
+                                className="px-4 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-xl shadow-xs disabled:opacity-50 transition-colors cursor-pointer"
+                            >
+                                {isDeleting ? 'Deactivating...' : 'Confirm Deactivate'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

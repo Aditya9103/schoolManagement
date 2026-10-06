@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { CalendarCheck } from 'lucide-react';
 import {
     ResponsiveContainer,
     ComposedChart,
@@ -13,14 +14,7 @@ import {
 export default function AttendanceOverviewChart({ data }) {
     const [timeframe, setTimeframe] = useState('Weekly'); // 'Daily' | 'Weekly' | 'Monthly'
 
-    const attendanceData = data || [
-        { day: 'Mon', present: 1120, absent: 85, leave: 43, total: 1248 },
-        { day: 'Tue', present: 1135, absent: 78, leave: 35, total: 1248 },
-        { day: 'Wed', present: 1110, absent: 95, leave: 43, total: 1248 },
-        { day: 'Thu', present: 1145, absent: 68, leave: 24, total: 1237 },
-        { day: 'Fri', present: 1150, absent: 65, leave: 33, total: 1248 },
-        { day: 'Sat', present: 1080, absent: 110, leave: 58, total: 1248 },
-    ];
+    const attendanceData = Array.isArray(data) ? data : [];
 
     const CustomTooltip = ({ active, payload, label }) => {
         if (!active || !payload || !payload.length) return null;
@@ -106,57 +100,65 @@ export default function AttendanceOverviewChart({ data }) {
                 </span>
             </div>
 
-            {/* Composed Chart */}
-            <div className="h-44 sm:h-48 w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                    <ComposedChart
-                        data={attendanceData}
-                        margin={{ top: 10, right: 5, left: -25, bottom: 0 }}
-                        barGap={2}
-                    >
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
-                        <XAxis
-                            dataKey="day"
-                            axisLine={false}
-                            tickLine={false}
-                            tick={{ fill: '#64748B', fontSize: 10, fontWeight: 500 }}
-                        />
-                        <YAxis
-                            axisLine={false}
-                            tickLine={false}
-                            tick={{ fill: '#94A3B8', fontSize: 9 }}
-                            domain={[0, 1300]}
-                            ticks={[0, 350, 700, 1050, 1300]}
-                        />
-                        <Tooltip content={<CustomTooltip />} />
-                        <Bar
-                            dataKey="present"
-                            fill="#2563EB"
-                            radius={[3, 3, 0, 0]}
-                            maxBarSize={12}
-                        />
-                        <Bar
-                            dataKey="absent"
-                            fill="#F43F5E"
-                            radius={[3, 3, 0, 0]}
-                            maxBarSize={8}
-                        />
-                        <Bar
-                            dataKey="leave"
-                            fill="#FBBF24"
-                            radius={[3, 3, 0, 0]}
-                            maxBarSize={8}
-                        />
-                        <Line
-                            type="monotone"
-                            dataKey="total"
-                            stroke="#1E293B"
-                            strokeWidth={2}
-                            dot={{ fill: '#1E293B', r: 3 }}
-                            activeDot={{ r: 4 }}
-                        />
-                    </ComposedChart>
-                </ResponsiveContainer>
+            {/* Composed Chart or Empty State */}
+            <div className="h-44 sm:h-48 w-full flex items-center justify-center">
+                {attendanceData.length === 0 ? (
+                    <div className="text-center py-6 text-slate-400">
+                        <CalendarCheck className="w-8 h-8 text-slate-300 mx-auto mb-1.5" />
+                        <p className="text-xs font-semibold text-slate-600">No attendance records recorded yet</p>
+                        <p className="text-[11px] text-slate-400 mt-0.5">Daily attendance trends will appear here once marked</p>
+                    </div>
+                ) : (
+                    <ResponsiveContainer width="100%" height="100%">
+                        <ComposedChart
+                            data={attendanceData}
+                            margin={{ top: 10, right: 5, left: -25, bottom: 0 }}
+                            barGap={2}
+                        >
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
+                            <XAxis
+                                dataKey="day"
+                                axisLine={false}
+                                tickLine={false}
+                                tick={{ fill: '#64748B', fontSize: 10, fontWeight: 500 }}
+                            />
+                            <YAxis
+                                axisLine={false}
+                                tickLine={false}
+                                tick={{ fill: '#94A3B8', fontSize: 9 }}
+                                domain={[0, 1300]}
+                                ticks={[0, 350, 700, 1050, 1300]}
+                            />
+                            <Tooltip content={<CustomTooltip />} />
+                            <Bar
+                                dataKey="present"
+                                fill="#2563EB"
+                                radius={[3, 3, 0, 0]}
+                                maxBarSize={12}
+                            />
+                            <Bar
+                                dataKey="absent"
+                                fill="#F43F5E"
+                                radius={[3, 3, 0, 0]}
+                                maxBarSize={8}
+                            />
+                            <Bar
+                                dataKey="leave"
+                                fill="#FBBF24"
+                                radius={[3, 3, 0, 0]}
+                                maxBarSize={8}
+                            />
+                            <Line
+                                type="monotone"
+                                dataKey="total"
+                                stroke="#1E293B"
+                                strokeWidth={2}
+                                dot={{ fill: '#1E293B', r: 3 }}
+                                activeDot={{ r: 4 }}
+                            />
+                        </ComposedChart>
+                    </ResponsiveContainer>
+                )}
             </div>
         </div>
     );

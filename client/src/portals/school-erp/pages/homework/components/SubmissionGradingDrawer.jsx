@@ -17,21 +17,12 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
-const DEFAULT_SAMPLE_SUBMISSIONS = [
-    { studentName: 'Aarav Sharma', rollNo: '6A001', avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150', status: 'SUBMITTED', submittedAt: '2026-04-20T16:30:00Z', marksObtained: 18, grade: 'A', feedback: 'Great work! Keep it up. Solve Q6 with more detailed steps next time.', isLate: false, files: [{ title: 'math_assignment_aarav.pdf', size: '2.1 MB' }] },
-    { studentName: 'Ananya Verma', rollNo: '6A002', avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150', status: 'SUBMITTED', submittedAt: '2026-04-20T17:15:00Z', marksObtained: 19, grade: 'A+', feedback: 'Excellent step-by-step working and presentation.', isLate: false, files: [{ title: 'math_assignment_ananya.pdf', size: '1.8 MB' }] },
-    { studentName: 'Rohan Patel', rollNo: '6A003', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150', status: 'SUBMITTED', submittedAt: '2026-04-21T11:20:00Z', marksObtained: 16, grade: 'B+', feedback: 'Good effort, but check question 4 calculation again.', isLate: false, files: [{ title: 'rohan_exercise1.pdf', size: '3.0 MB' }] },
-    { studentName: 'Sneha Gupta', rollNo: '6A004', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150', status: 'PENDING', submittedAt: null, marksObtained: null, grade: null, feedback: '', isLate: false, files: [] },
-    { studentName: 'Vihaan Singh', rollNo: '6A005', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150', status: 'LATE', submittedAt: '2026-04-22T08:15:00Z', marksObtained: 14, grade: 'B', feedback: 'Submitted past deadline. Penalty applied.', isLate: true, files: [{ title: 'vihaan_maths.pdf', size: '1.5 MB' }] },
-    { studentName: 'Kavya Joshi', rollNo: '6A006', avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150', status: 'SUBMITTED', submittedAt: '2026-04-20T18:40:00Z', marksObtained: 19, grade: 'A', feedback: 'Very neat drawings and clear reasoning.', isLate: false, files: [{ title: 'kavya_homework.pdf', size: '2.4 MB' }] },
-];
-
 export default function SubmissionGradingDrawer({
     isOpen,
     onClose,
     submissions = [],
     initialSubmissionIndex = 0,
-    assignmentTitle = 'Chapter 1 - Exercise Questions',
+    assignmentTitle = '',
     maxMarks = 20,
     onSaveGrade,
 }) {
@@ -39,19 +30,17 @@ export default function SubmissionGradingDrawer({
         ? submissions
         : Array.isArray(submissions?.submissions) && submissions.submissions.length > 0
         ? submissions.submissions
-        : DEFAULT_SAMPLE_SUBMISSIONS;
+        : [];
 
     if (!isOpen || list.length === 0) return null;
 
     const [currentIndex, setCurrentIndex] = useState(initialSubmissionIndex);
     const currentSub = list[currentIndex] || list[0];
 
-    const [marks, setMarks] = useState(currentSub.marksObtained ?? 18);
-    const [grade, setGrade] = useState(currentSub.grade || 'A');
-    const [feedback, setFeedback] = useState(
-        currentSub.feedback || 'Great work! Keep it up. Solve Q6 with more detailed steps next time.'
-    );
-    const [status, setStatus] = useState(currentSub.status || 'SUBMITTED');
+    const [marks, setMarks] = useState(currentSub?.marksObtained ?? '');
+    const [grade, setGrade] = useState(currentSub?.grade || '');
+    const [feedback, setFeedback] = useState(currentSub?.feedback || '');
+    const [status, setStatus] = useState(currentSub?.status || 'SUBMITTED');
     const [zoom, setZoom] = useState(100);
 
     // Sync when current index changes

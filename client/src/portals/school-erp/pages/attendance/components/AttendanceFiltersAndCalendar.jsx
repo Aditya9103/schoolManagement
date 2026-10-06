@@ -28,13 +28,16 @@ export default function AttendanceFiltersAndCalendar({
     ];
 
     // Color definitions for donut
-    const donutData = distribution.length > 0 ? distribution : [
-        { name: 'Present', value: 1102, percentage: 88.3, color: '#10b981' },
-        { name: 'Absent', value: 146, percentage: 11.7, color: '#ef4444' },
-        { name: 'Late', value: 28, percentage: 2.2, color: '#f59e0b' },
-        { name: 'Excused', value: 12, percentage: 1.0, color: '#6366f1' },
-        { name: 'Not Marked', value: 0, percentage: 0.0, color: '#cbd5e1' },
+    const donutData = distribution && distribution.length > 0 ? distribution : [
+        { name: 'Present', value: 0, percentage: 0, color: '#10b981' },
+        { name: 'Absent', value: 0, percentage: 0, color: '#ef4444' },
+        { name: 'Late', value: 0, percentage: 0, color: '#f59e0b' },
+        { name: 'Excused', value: 0, percentage: 0, color: '#6366f1' },
     ];
+
+    const presentItem = donutData.find((d) => d.name === 'Present');
+    const totalCount = donutData.reduce((acc, curr) => acc + (curr.value || 0), 0);
+    const overallRate = totalCount > 0 ? `${(((presentItem?.value || 0) / totalCount) * 100).toFixed(1)}%` : '0%';
 
     return (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
@@ -232,7 +235,7 @@ export default function AttendanceFiltersAndCalendar({
                         </ResponsiveContainer>
                         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-center">
                             <span className="text-lg font-extrabold text-slate-900 leading-none">
-                                88.3%
+                                {overallRate}
                             </span>
                             <span className="text-[10px] font-medium text-slate-500 mt-0.5">
                                 Attendance

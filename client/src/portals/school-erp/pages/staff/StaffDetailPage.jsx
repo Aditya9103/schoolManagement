@@ -24,25 +24,8 @@ export default function StaffDetailPage() {
         skip: !canViewSalary,
     });
 
-    const user = data?.user || {
-        firstName: 'Suresh',
-        lastName: 'Kumar',
-        email: 'suresh.kumar@greenwood.edu.in',
-        phone: '+91 98765 43210',
-        profilePhotoUrl: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=300&q=80',
-        isActive: true,
-    };
-
-    const profile = data?.profile || {
-        employeeId: 'STF001',
-        department: 'Administration',
-        designation: 'Accountant',
-        qualification: 'B.Com',
-        experienceYears: 5,
-        status: 'ACTIVE',
-        joiningDate: '2021-03-10',
-        shiftTiming: '9:00 AM - 5:00 PM',
-    };
+    const user = data?.user;
+    const profile = data?.profile || {};
 
     const [tasks, setTasks] = useState([
         { id: 1, title: 'Manage student fee receipts and ledger records', completed: true },
@@ -63,6 +46,24 @@ export default function StaffDetailPage() {
                 <RefreshCw size={36} className="animate-spin text-blue-600 mb-3" />
                 <p className="text-sm font-bold text-slate-800">Loading staff 360° profile...</p>
                 <p className="text-xs text-slate-500 mt-0.5">Retrieving staff employment credentials and duty allocations</p>
+            </div>
+        );
+    }
+
+    if (!user) {
+        return (
+            <div className="py-24 text-center bg-white rounded-3xl border border-slate-200/90 shadow-2xs p-8 space-y-3">
+                <AlertCircle size={42} className="mx-auto text-slate-400" />
+                <h3 className="text-base font-bold text-slate-800">Staff Member Not Found</h3>
+                <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                    The requested staff member ID does not exist or may have been removed.
+                </p>
+                <button
+                    onClick={() => navigate('/school/staff')}
+                    className="mt-2 px-4 py-2 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-xl transition-colors cursor-pointer"
+                >
+                    Back to Staff Directory
+                </button>
             </div>
         );
     }

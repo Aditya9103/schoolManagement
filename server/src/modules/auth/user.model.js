@@ -37,21 +37,18 @@ const userSchema = new mongoose.Schema(
             enum: ['MALE', 'FEMALE', 'OTHER', null],
             default: null,
         },
-        // PrimeSchoolOs Roles
+        // PrimeSchoolOs Roles: System roles (TEACHER, SCHOOL_ADMIN, etc.) OR custom dynamic roles created in Roles & Permissions
         role: {
             type: String,
-            enum: [
-                'SUPER_ADMIN',
-                'SCHOOL_ADMIN',
-                'TEACHER',
-                'ACCOUNTANT',
-                'LIBRARIAN',
-                'FRONT_OFFICE',
-                'DRIVER',
-                'PARENT',
-                'STUDENT',
-            ],
             required: true,
+            trim: true,
+            index: true,
+        },
+        roleId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Role',
+            default: null,
+            index: true,
         },
         // Staff fields
         employeeId: { type: String, trim: true, default: null },

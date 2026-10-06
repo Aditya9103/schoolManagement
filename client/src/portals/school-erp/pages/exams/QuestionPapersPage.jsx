@@ -22,100 +22,25 @@ import toast from 'react-hot-toast';
 import { useListQuestionPapersQuery } from '../../../../store/api/examApi';
 import { generateQuestionPaperPdf } from '../../../../utils/pdfGenerator';
 
-const SAMPLE_QUESTION_PAPERS = [
-    {
-        id: 'qp-1',
-        title: 'Mathematics - Set A',
-        className: 'Class 6',
-        subjectName: 'Mathematics',
-        examName: 'Unit Test 1',
-        examType: 'Periodic Test',
-        fileSize: '2.4 MB',
-        uploadedAt: '12 Apr 2026',
-        status: 'PUBLISHED',
-        totalMarks: 100,
-        durationMinutes: 120,
-        author: 'Dr. Ramesh Rao',
-    },
-    {
-        id: 'qp-2',
-        title: 'Science - Set A',
-        className: 'Class 6',
-        subjectName: 'Science',
-        examName: 'Unit Test 1',
-        examType: 'Periodic Test',
-        fileSize: '1.8 MB',
-        uploadedAt: '13 Apr 2026',
-        status: 'PUBLISHED',
-        totalMarks: 100,
-        durationMinutes: 120,
-        author: 'Mrs. Sunita Paul',
-    },
-    {
-        id: 'qp-3',
-        title: 'English - Set B',
-        className: 'Class 7',
-        subjectName: 'English',
-        examName: 'Unit Test 1',
-        examType: 'Periodic Test',
-        fileSize: '3.1 MB',
-        uploadedAt: '14 Apr 2026',
-        status: 'DRAFT',
-        totalMarks: 100,
-        durationMinutes: 120,
-        author: 'Mr. Arvind Joseph',
-    },
-    {
-        id: 'qp-4',
-        title: 'Social Science - Set A',
-        className: 'Class 8',
-        subjectName: 'SST',
-        examName: 'Half Yearly',
-        examType: 'Term Exam',
-        fileSize: '4.2 MB',
-        uploadedAt: '15 Apr 2026',
-        status: 'PUBLISHED',
-        totalMarks: 100,
-        durationMinutes: 180,
-        author: 'Mrs. Anita Deshmukh',
-    },
-    {
-        id: 'qp-5',
-        title: 'Hindi - Set A',
-        className: 'Class 6',
-        subjectName: 'Hindi',
-        examName: 'Unit Test 1',
-        examType: 'Periodic Test',
-        fileSize: '1.5 MB',
-        uploadedAt: '16 Apr 2026',
-        status: 'PUBLISHED',
-        totalMarks: 100,
-        durationMinutes: 120,
-        author: 'Pt. Ramdhari Sharma',
-    },
-    {
-        id: 'qp-6',
-        title: 'Computer - Set A',
-        className: 'Class 9',
-        subjectName: 'Computer',
-        examName: 'Pre-Board',
-        examType: 'Board Pattern',
-        fileSize: '2.9 MB',
-        uploadedAt: '17 Apr 2026',
-        status: 'DRAFT',
-        totalMarks: 100,
-        durationMinutes: 150,
-        author: 'Er. Vikas Bansal',
-    },
-];
-
 export default function QuestionPapersPage() {
     const navigate = useNavigate();
 
     // Query data
     const { data: qpRes } = useListQuestionPapersQuery();
 
-    const [papers, setPapers] = useState(SAMPLE_QUESTION_PAPERS);
+    const [papers, setPapers] = useState([]);
+
+    useEffect(() => {
+        if (qpRes) {
+            const apiPapers = Array.isArray(qpRes?.papers)
+                ? qpRes.papers
+                : Array.isArray(qpRes)
+                ? qpRes
+                : [];
+            setPapers(apiPapers);
+        }
+    }, [qpRes]);
+
     const [activeTab, setActiveTab] = useState('ALL'); // 'ALL' | 'DRAFT' | 'PUBLISHED'
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedClass, setSelectedClass] = useState('all');
@@ -142,7 +67,7 @@ export default function QuestionPapersPage() {
         const total = papers.length;
         const draft = papers.filter(p => p.status === 'DRAFT').length;
         const published = papers.filter(p => p.status === 'PUBLISHED').length;
-        return { total: 24, draft: 4, published: 18 };
+        return { total, draft, published };
     }, [papers]);
 
     // Filtering
@@ -528,7 +453,14 @@ export default function QuestionPapersPage() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 text-xs">
-                            {filteredPapers.map((paper, idx) => {
+                            {filteredPapers.length === 0 ? (
+                                <tr>
+                                    <td colSpan="8" className="py-12 text-center text-slate-400 font-medium">
+                                        No question papers found.
+                                    </td>
+                                </tr>
+                            ) : (
+                                filteredPapers.map((paper, idx) => {
                                 const isSelected = selectedIds.has(paper.id);
                                 return (
                                     <tr
@@ -613,7 +545,7 @@ export default function QuestionPapersPage() {
                                         </td>
                                     </tr>
                                 );
-                            })}
+                            }))}
                         </tbody>
                     </table>
                 </div>

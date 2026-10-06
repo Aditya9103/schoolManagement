@@ -16,6 +16,8 @@ import { attendanceApi } from './api/attendanceApi';
 import { homeworkApi } from './api/homeworkApi';
 import { examApi } from './api/examApi';
 import { peopleApi } from './api/peopleApi';
+import { noticeApi } from './api/noticeApi';
+import { feeApi } from './api/feeApi';
 import authReducer from './slices/authSlice';
 
 export const store = configureStore({
@@ -34,6 +36,8 @@ export const store = configureStore({
         [homeworkApi.reducerPath]: homeworkApi.reducer,
         [examApi.reducerPath]: examApi.reducer,
         [peopleApi.reducerPath]: peopleApi.reducer,
+        [noticeApi.reducerPath]: noticeApi.reducer,
+        [feeApi.reducerPath]: feeApi.reducer,
     },
     middleware: (getDefaultMiddleware) =>
         getDefaultMiddleware()
@@ -49,6 +53,8 @@ export const store = configureStore({
             .concat(attendanceApi.middleware)
             .concat(homeworkApi.middleware)
             .concat(examApi.middleware)
-            .concat(peopleApi.middleware),
+            .concat(peopleApi.middleware)
+            .concat(noticeApi.middleware)
+            .concat(feeApi.middleware),
     devTools: import.meta.env.DEV,
 });

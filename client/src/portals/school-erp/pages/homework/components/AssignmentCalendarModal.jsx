@@ -27,15 +27,30 @@ export default function AssignmentCalendarModal({
     const daysInMonth = 30;
     const startDayOffset = 3; // Wednesday
 
-    // Sample events plotted matching Screen 6
-    const eventsMap = {
-        '12': [{ id: '1', title: 'Maths - Ch1 Ex...', type: 'HOMEWORK', color: 'bg-blue-100 text-blue-800 border-blue-200' }],
-        '15': [{ id: '2', title: 'English Essay', type: 'ASSIGNMENT', color: 'bg-purple-100 text-purple-800 border-purple-200' }],
-        '18': [{ id: '3', title: 'Map Work', type: 'HOMEWORK', color: 'bg-blue-100 text-blue-800 border-blue-200' }, { id: '4', title: 'Science Project', type: 'PROJECT', color: 'bg-amber-100 text-amber-800 border-amber-200' }],
-        '21': [{ id: '5', title: 'Computer Pract...', type: 'PRACTICAL', color: 'bg-pink-100 text-pink-800 border-pink-200' }, { id: '6', title: 'Physics Equations', type: 'ASSIGNMENT', color: 'bg-purple-100 text-purple-800 border-purple-200' }],
-        '25': [{ id: '7', title: 'Physical Fitness...', type: 'HOMEWORK', color: 'bg-blue-100 text-blue-800 border-blue-200' }],
-        '28': [{ id: '8', title: 'Music Assignment', type: 'ASSIGNMENT', color: 'bg-purple-100 text-purple-800 border-purple-200' }],
+    const colorMap = {
+        HOMEWORK: 'bg-blue-100 text-blue-800 border-blue-200',
+        ASSIGNMENT: 'bg-purple-100 text-purple-800 border-purple-200',
+        PROJECT: 'bg-amber-100 text-amber-800 border-amber-200',
+        PRACTICAL: 'bg-pink-100 text-pink-800 border-pink-200',
     };
+
+    const eventsMap = useMemo(() => {
+        const map = {};
+        for (const item of assignments) {
+            if (!item.deadline) continue;
+            const d = new Date(item.deadline);
+            const dayNum = String(d.getDate());
+            if (!map[dayNum]) map[dayNum] = [];
+            map[dayNum].push({
+                id: item._id || item.id,
+                title: item.title,
+                type: item.type || 'HOMEWORK',
+                color: colorMap[item.type] || 'bg-blue-100 text-blue-800 border-blue-200',
+                raw: item,
+            });
+        }
+        return map;
+    }, [assignments]);
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-3 sm:p-5 overflow-y-auto">
@@ -159,17 +174,8 @@ export default function AssignmentCalendarModal({
                                                     key={evt.id}
                                                     type="button"
                                                     onClick={() => {
-                                                        const match =
-                                                            assignments.find((a) => a._id === evt.id || a.id === evt.id) ||
-                                                            assignments.find((a) =>
-                                                                a.title?.toLowerCase().includes(evt.title?.toLowerCase().slice(0, 4))
-                                                            ) ||
-                                                            assignments[0] || {
-                                                                title: evt.title,
-                                                                className: 'Class 6 - A',
-                                                                subjectName: 'Mathematics',
-                                                            };
-                                                        if (onSelectAssignment) onSelectAssignment(match);
+                                                        const match = evt.raw || assignments.find((a) => (a._id || a.id) === evt.id);
+                                                        if (match && onSelectAssignment) onSelectAssignment(match);
                                                     }}
                                                     className={`w-full text-left px-1.5 py-0.5 rounded-md border text-[10px] font-bold truncate block transition-transform hover:scale-[1.02] cursor-pointer ${evt.color}`}
                                                 >

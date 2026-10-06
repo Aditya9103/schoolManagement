@@ -4,7 +4,7 @@ import {
     Users, Plus, Search, Filter, Grid, List, Phone, Mail,
     MapPin, Briefcase, GraduationCap, ChevronLeft, ChevronRight,
     RefreshCw, ShieldCheck, CheckCircle2, MoreVertical, Eye, HeartHandshake,
-    Sparkles, UserCheck, ShieldAlert
+    Sparkles, UserCheck, ShieldAlert, Download
 } from 'lucide-react';
 import { useGetParentsQuery } from '../../../../store/api/peopleApi';
 import usePermissions from '../../../../hooks/usePermissions';
@@ -40,10 +40,10 @@ export default function ParentsPage() {
     }, [rawParents, selectedPickup]);
 
     const kpis = resData?.data?.kpis || {
-        totalParents: rawParents.length || 42,
-        activeGuardians: rawParents.length || 40,
-        multiChildFamilies: 14,
-        portalActiveRate: 94
+        totalParents: rawParents.length,
+        activeGuardians: rawParents.filter(p => p.status === 'ACTIVE').length,
+        multiChildFamilies: rawParents.filter(p => (p.childrenCount || 0) > 1).length,
+        portalActiveRate: rawParents.length ? Math.round((rawParents.filter(p => p.status === 'ACTIVE').length / rawParents.length) * 100) : 0
     };
     const pagination = resData?.data?.pagination || { page: 1, totalPages: 1, total: rawParents.length };
 
@@ -54,6 +54,44 @@ export default function ParentsPage() {
         setSelectedStatus('All');
         setSelectedPickup('All');
         setPage(1);
+    };
+
+    const handleExportCSV = () => {
+        if (!parents.length) {
+            alert('No parent records available to export.');
+            return;
+        }
+
+        const headers = [
+            'Parent / Guardian Name',
+            'Relationship',
+            'Email',
+            'Phone',
+            'Children Count',
+            'Occupation',
+            'Can Pickup Student',
+            'Emergency Contact'
+        ];
+
+        const rows = parents.map((p) => [
+            `"${p.name || ''}"`,
+            `"${p.relationship || 'Guardian'}"`,
+            `"${p.email || ''}"`,
+            `"${p.phone || ''}"`,
+            `"${p.childrenCount || 0}"`,
+            `"${p.occupation || ''}"`,
+            `"${p.canPickupStudent !== false ? 'Authorized' : 'Restricted'}"`,
+            `"${p.isEmergencyContact ? 'Yes' : 'No'}"`
+        ]);
+
+        const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement('a');
+        link.setAttribute('href', encodedUri);
+        link.setAttribute('download', `Parents_Directory_${new Date().toISOString().split('T')[0]}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
     };
 
     return (
@@ -85,6 +123,16 @@ export default function ParentsPage() {
                     </div>
 
                     <div className="flex flex-wrap items-center gap-2.5 self-start lg:self-center">
+                        <button
+                            type="button"
+                            onClick={handleExportCSV}
+                            className="p-2.5 text-slate-600 hover:text-slate-900 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl transition-all shadow-2xs cursor-pointer flex items-center gap-1.5 text-xs font-bold"
+                            title="Export parents registry to CSV"
+                        >
+                            <Download className="w-4 h-4" />
+                            <span className="hidden sm:inline">Export CSV</span>
+                        </button>
+
                         <button
                             type="button"
                             onClick={() => refetch()}

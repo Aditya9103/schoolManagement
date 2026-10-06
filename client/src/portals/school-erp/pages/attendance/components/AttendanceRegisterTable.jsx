@@ -13,7 +13,8 @@ import {
     Eye,
     History,
     Check,
-    AlertCircle
+    AlertCircle,
+    ClipboardList
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -322,7 +323,16 @@ export default function AttendanceRegisterTable({
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 text-sm">
-                        {currentRecords.map((record, index) => {
+                        {currentRecords.length === 0 ? (
+                            <tr>
+                                <td colSpan={7} className="py-12 text-center text-slate-400">
+                                    <ClipboardList className="w-10 h-10 text-slate-300 mx-auto mb-2" />
+                                    <p className="text-sm font-semibold text-slate-600">No students found in this register</p>
+                                    <p className="text-xs text-slate-400 mt-0.5">Select a different class or section, or enroll students to begin.</p>
+                                </td>
+                            </tr>
+                        ) : (
+                            currentRecords.map((record, index) => {
                             const globalIndex = startIndex + index + 1;
                             const isChecked = selectedStudentIds.has(record.studentId);
 
@@ -441,7 +451,7 @@ export default function AttendanceRegisterTable({
                                     </td>
                                 </tr>
                             );
-                        })}
+                        }))}
                     </tbody>
                 </table>
             </div>

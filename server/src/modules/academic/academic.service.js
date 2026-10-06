@@ -6,6 +6,14 @@ import Subject from './subject.model.js';
 import Timetable from './timetable.model.js';
 import Student from '../student/student.model.js';
 import User from '../auth/user.model.js';
+import TeachingAssignment from '../people/models/teachingAssignment.model.js';
+import TeacherAssignment from '../people/models/teacherAssignment.model.js';
+import SubjectAssignment from '../people/models/subjectAssignment.model.js';
+import Assignment from '../homework/assignment.model.js';
+import CommunicationLog from '../people/models/communicationLog.model.js';
+import Attendance from '../attendance/attendance.model.js';
+import Exam from '../exam/exam.model.js';
+import { eventBus, DOMAIN_EVENTS } from '../../events/eventBus.js';
 import ApiError from '../../utils/ApiError.js';
 
 // Classroom visuals for classes
@@ -103,14 +111,14 @@ export const getOverviewStats = async (schoolId) => {
     // Section students fallback calculation if Student collection has fewer entries
     const sections = await Section.find({ schoolId, status: 'Active' }).select('studentCount').lean();
     const calculatedEnrolled = sections.reduce((sum, s) => sum + (s.studentCount || 0), 0);
-    const finalStudentCount = Math.max(studentsCount, calculatedEnrolled, 1248);
+    const finalStudentCount = studentsCount > 0 ? studentsCount : calculatedEnrolled;
 
     return {
-        totalClasses: Math.max(totalClasses, 16),
-        totalSections: Math.max(totalSections, 48),
+        totalClasses,
+        totalSections,
         totalStudents: finalStudentCount,
-        totalTeachers: Math.max(totalTeachers, 48),
-        averageSectionsPerClass: totalClasses ? (totalSections / totalClasses).toFixed(1) : 3,
+        totalTeachers,
+        averageSectionsPerClass: totalClasses ? (totalSections / totalClasses).toFixed(1) : 0,
     };
 };
 
@@ -348,6 +356,7 @@ export const assignTeacher = async (schoolId, payload = {}) => {
     const { classId, sectionId, teacherId } = payload;
     if (!teacherId) throw ApiError.badRequest('Teacher ID is required');
 
+    let result = null;
     if (sectionId) {
         const section = await Section.findOneAndUpdate(
             { _id: sectionId, schoolId },
@@ -355,20 +364,36 @@ export const assignTeacher = async (schoolId, payload = {}) => {
             { new: true }
         ).populate('classTeacherId', 'firstName lastName email profilePhotoUrl phone');
         if (!section) throw ApiError.notFound('Section not found');
-        return section;
-    }
-
-    if (classId) {
+        result = section;
+    } else if (classId) {
         const classObj = await Class.findOneAndUpdate(
             { _id: classId, schoolId },
             { classTeacherId: teacherId },
             { new: true }
         ).populate('classTeacherId', 'firstName lastName email profilePhotoUrl phone');
         if (!classObj) throw ApiError.notFound('Class not found');
-        return classObj;
+        result = classObj;
+    } else {
+        throw ApiError.badRequest('Either classId or sectionId is required');
     }
 
-    throw ApiError.badRequest('Either classId or sectionId is required');
+    // Upsert canonical TeachingAssignment
+    await TeachingAssignment.findOneAndUpdate(
+        { schoolId, teacherId, classId: classId || result.classId, ...(sectionId ? { sectionId } : {}), assignmentType: 'CLASS_TEACHER' },
+        { status: 'ACTIVE', assignedAt: new Date() },
+        { upsert: true }
+    );
+
+    // Publish event for real-time sync across connected clients
+    eventBus.publish(DOMAIN_EVENTS.TEACHING_ASSIGNMENT_CREATED, {
+        schoolId,
+        teacherId,
+        classId: classId || result.classId,
+        sectionId,
+        assignmentType: 'CLASS_TEACHER'
+    });
+
+    return result;
 };
 
 export const getStaffTeachers = async (schoolId) => {
@@ -707,6 +732,27 @@ export const assignSubjectTeachers = async (schoolId, { subjectId, classIds = []
         subject.teacherId = teacherIds[0];
     }
     await subject.save();
+
+    // Canonical TeachingAssignments
+    for (const tid of teacherIds) {
+        for (const cid of (classIds.length ? classIds : [subject.classId])) {
+            if (cid && tid) {
+                await TeachingAssignment.findOneAndUpdate(
+                    { schoolId, teacherId: tid, classId: cid, subjectId, assignmentType: 'SUBJECT_TEACHER' },
+                    { status: 'ACTIVE', assignedAt: new Date() },
+                    { upsert: true }
+                );
+            }
+        }
+    }
+
+    eventBus.publish(DOMAIN_EVENTS.TEACHING_ASSIGNMENT_CREATED, {
+        schoolId,
+        subjectId,
+        teacherIds,
+        classIds
+    });
+
     return subject;
 };
 
@@ -799,6 +845,12 @@ export const saveTimetable = async (schoolId, data) => {
         },
         { new: true, upsert: true }
     );
+
+    eventBus.publish(DOMAIN_EVENTS.TIMETABLE_UPDATED, {
+        schoolId,
+        classId,
+        sectionId: targetSectionId
+    });
 
     return updated;
 };
@@ -1074,4 +1126,277 @@ export const deleteAcademicYear = async (schoolId, yearId) => {
         throw ApiError.badRequest('Cannot delete the currently active academic year');
     }
     return AcademicYear.findByIdAndDelete(yearId);
+};
+
+export const getTeacherDashboardData = async (schoolId, teacherId) => {
+    if (!schoolId || !teacherId) throw ApiError.badRequest('School ID and Teacher ID are required');
+
+    // 1. Fetch teacher assignments (canonical first, fallback to legacy)
+    let assignments = await TeachingAssignment.find({
+        schoolId,
+        teacherId,
+        status: 'ACTIVE'
+    }).populate('classId', 'name numericGrade').populate('sectionId', 'name').populate('subjectId', 'name code').lean();
+
+    if (!assignments || !assignments.length) {
+        const classAssignments = await TeacherAssignment.find({ schoolId, teacherId, status: 'ACTIVE' })
+            .populate('classId', 'name numericGrade').populate('sectionId', 'name').lean();
+        const subjectAssignments = await SubjectAssignment.find({ schoolId, teacherId, status: 'ACTIVE' })
+            .populate('classId', 'name numericGrade').populate('sectionId', 'name').populate('subjectId', 'name code').lean();
+
+        assignments = [
+            ...classAssignments.map(a => ({ ...a, assignmentType: a.isClassTeacher ? 'CLASS_TEACHER' : 'SUBJECT_TEACHER' })),
+            ...subjectAssignments.map(a => ({ ...a, assignmentType: 'SUBJECT_TEACHER' }))
+        ];
+    }
+
+    const sectionIds = [...new Set(assignments.map(a => a.sectionId?._id || a.sectionId).filter(Boolean))];
+    const classIds = [...new Set(assignments.map(a => a.classId?._id || a.classId).filter(Boolean))];
+
+    // 2. Count real active students across assigned sections
+    const totalStudents = sectionIds.length > 0
+        ? await Student.countDocuments({
+            schoolId,
+            sectionId: { $in: sectionIds },
+            status: 'ACTIVE'
+        })
+        : 0;
+
+    // 3. Resolve real timetable slots
+    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const now = new Date();
+    const todayName = dayNames[now.getDay()];
+
+    const timetables = await Timetable.find({
+        schoolId,
+        'slots.teacherId': teacherId,
+        'slots.day': todayName
+    }).populate('classId', 'name').populate('sectionId', 'name').lean();
+
+    // Count weekly periods across all days for this teacher
+    const allTeacherTimetables = await Timetable.find({
+        schoolId,
+        'slots.teacherId': teacherId
+    }).lean();
+    let weeklyPeriods = 0;
+    allTeacherTimetables.forEach(t => {
+        (t.slots || []).forEach(s => {
+            if (s.teacherId?.toString() === teacherId.toString()) {
+                weeklyPeriods++;
+            }
+        });
+    });
+
+    const nowMinutes = now.getHours() * 60 + now.getMinutes();
+
+    let todaySchedule = [];
+    timetables.forEach(t => {
+        const matchingSlots = (t.slots || []).filter(s => s.teacherId?.toString() === teacherId.toString() && s.day === todayName);
+        matchingSlots.forEach(s => {
+            let slotStatus = 'UPCOMING';
+            if (s.startTime && s.endTime) {
+                const parseTimeToMinutes = (tStr) => {
+                    const match = tStr.match(/(\d+):(\d+)\s*(AM|PM)?/i);
+                    if (!match) return null;
+                    let hrs = parseInt(match[1]);
+                    const mins = parseInt(match[2]);
+                    const ampm = match[3]?.toUpperCase();
+                    if (ampm === 'PM' && hrs < 12) hrs += 12;
+                    if (ampm === 'AM' && hrs === 12) hrs = 0;
+                    return hrs * 60 + mins;
+                };
+                const startMins = parseTimeToMinutes(s.startTime);
+                const endMins = parseTimeToMinutes(s.endTime);
+                if (startMins !== null && endMins !== null) {
+                    if (nowMinutes >= endMins) slotStatus = 'COMPLETED';
+                    else if (nowMinutes >= startMins && nowMinutes < endMins) slotStatus = 'LIVE';
+                    else slotStatus = 'UPCOMING';
+                }
+            }
+
+            todaySchedule.push({
+                period: s.periodNumber || 1,
+                time: `${s.startTime || '09:00 AM'} - ${s.endTime || '09:45 AM'}`,
+                className: `${t.classId?.name || 'Class'} - ${t.sectionId?.name || 'A'}`,
+                subject: s.subjectName || 'Subject',
+                room: s.roomNumber || 'Room 101',
+                status: slotStatus
+            });
+        });
+    });
+
+    todaySchedule.sort((a, b) => a.period - b.period);
+
+    // 4. Real attendance rate across assigned sections in last 30 days
+    let attendanceRate = null;
+    if (sectionIds.length > 0) {
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        const attDocs = await Attendance.find({
+            schoolId,
+            sectionId: { $in: sectionIds },
+            date: { $gte: thirtyDaysAgo }
+        }).select('records.status').lean();
+
+        let totalRecs = 0;
+        let presentRecs = 0;
+        attDocs.forEach(att => {
+            (att.records || []).forEach(r => {
+                totalRecs++;
+                if (['PRESENT', 'LATE'].includes(r.status)) presentRecs++;
+            });
+        });
+        if (totalRecs > 0) {
+            attendanceRate = Math.round((presentRecs / totalRecs) * 1000) / 10;
+        }
+    }
+
+    // 5. Real homework / assignment count
+    const activeHomeworkCount = await Assignment.countDocuments({
+        schoolId,
+        teacherId,
+        status: { $in: ['PUBLISHED', 'ACTIVE'] }
+    });
+
+    // 6. Real upcoming exams
+    let upcomingExamsCount = 0;
+    if (classIds.length > 0) {
+        upcomingExamsCount = await Exam.countDocuments({
+            schoolId,
+            classId: { $in: classIds },
+            startDate: { $gte: new Date() }
+        }).catch(() => 0);
+    }
+
+    // 7. Recent parent communication logs
+    let recentCommunications = [];
+    try {
+        const logs = await CommunicationLog.find({
+            schoolId,
+            $or: [{ senderId: teacherId }, { recipientId: teacherId }]
+        })
+            .populate('studentId', 'firstName lastName admissionNo rollNo')
+            .sort({ createdAt: -1 })
+            .limit(5)
+            .lean();
+        recentCommunications = logs.map(l => ({
+            id: l._id,
+            parent: l.parentName || 'Parent',
+            student: l.studentId ? `${l.studentId.firstName} ${l.studentId.lastName}` : 'Student',
+            note: l.content || l.subject || 'Direct communication record',
+            channel: l.channel || 'IN_APP',
+            createdAt: l.createdAt
+        }));
+    } catch (e) {
+        recentCommunications = [];
+    }
+
+    const isClassTeacherOf = assignments.find(a => a.assignmentType === 'CLASS_TEACHER');
+    const classTeacherTitle = isClassTeacherOf ? `${isClassTeacherOf.classId?.name || 'Class'} - ${isClassTeacherOf.sectionId?.name || 'A'}` : null;
+
+    // 8. Real classes cards with actual student counts & attendance
+    const myClasses = [];
+    const seenSection = new Set();
+    for (const a of assignments) {
+        const secId = a.sectionId?._id?.toString() || a.sectionId?.toString();
+        if (secId && !seenSection.has(secId)) {
+            seenSection.add(secId);
+            const count = await Student.countDocuments({ schoolId, sectionId: secId, status: 'ACTIVE' });
+
+            let secAvgAtt = 'N/A';
+            const recentAtt = await Attendance.find({ schoolId, sectionId: secId }).sort({ date: -1 }).limit(7).select('records.status').lean();
+            let secTotal = 0, secPres = 0;
+            recentAtt.forEach(doc => {
+                (doc.records || []).forEach(r => {
+                    secTotal++;
+                    if (['PRESENT', 'LATE'].includes(r.status)) secPres++;
+                });
+            });
+            if (secTotal > 0) {
+                secAvgAtt = `${Math.round((secPres / secTotal) * 1000) / 10}%`;
+            }
+
+            myClasses.push({
+                name: `${a.classId?.name || 'Class'} - ${a.sectionId?.name || 'Section'}`,
+                students: count,
+                role: a.assignmentType === 'CLASS_TEACHER' ? 'Class Teacher' : 'Subject Teacher',
+                avgAttendance: secAvgAtt,
+                classId: a.classId?._id || a.classId,
+                sectionId: secId,
+            });
+        }
+    }
+
+    // 9. Real Tasks command center
+    const myTasks = [];
+    if (activeHomeworkCount > 0) {
+        myTasks.push({
+            id: 'hw-active',
+            type: 'EVALUATION',
+            label: `${activeHomeworkCount} Homework assignment${activeHomeworkCount > 1 ? 's' : ''} currently active`,
+            color: 'bg-rose-50 text-rose-700 border-rose-200',
+            route: '/school/assignments'
+        });
+    }
+
+    if (isClassTeacherOf?.sectionId) {
+        const todayStart = new Date();
+        todayStart.setUTCHours(0, 0, 0, 0);
+        const markedToday = await Attendance.findOne({
+            schoolId,
+            sectionId: isClassTeacherOf.sectionId?._id || isClassTeacherOf.sectionId,
+            date: todayStart
+        });
+        if (!markedToday) {
+            myTasks.push({
+                id: 'att-open',
+                type: 'CORRECTION',
+                label: `Attendance for ${classTeacherTitle || 'assigned class'} not yet recorded today`,
+                color: 'bg-amber-50 text-amber-700 border-amber-200',
+                route: '/school/attendance'
+            });
+        }
+    }
+
+    if (upcomingExamsCount > 0) {
+        myTasks.push({
+            id: 'exam-alert',
+            type: 'EXAM',
+            label: `${upcomingExamsCount} Upcoming exam${upcomingExamsCount > 1 ? 's' : ''} scheduled for your classes`,
+            color: 'bg-purple-50 text-purple-700 border-purple-200',
+            route: '/school/exams'
+        });
+    }
+
+    if (recentCommunications.length > 0) {
+        myTasks.push({
+            id: 'comm-unread',
+            type: 'MESSAGES',
+            label: `${recentCommunications.length} Recent parent communication records`,
+            color: 'bg-blue-50 text-blue-700 border-blue-200',
+            route: '/school/messages'
+        });
+    }
+
+    return {
+        kpis: {
+            assignedClassesCount: myClasses.length,
+            totalStudentsCount: totalStudents,
+            todayClassesCount: todaySchedule.length,
+            attendanceRate: attendanceRate,
+            pendingHomeworkCount: activeHomeworkCount,
+            upcomingExamsCount: upcomingExamsCount
+        },
+        myTasks,
+        todaySchedule,
+        workload: {
+            classesCount: myClasses.length,
+            weeklyPeriods,
+            activeHomeworkCount,
+            classTeacherOf: classTeacherTitle,
+            curriculumProgressPct: 0
+        },
+        myClasses,
+        recentCommunications
+    };
 };
